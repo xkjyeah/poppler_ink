@@ -40,6 +40,8 @@ typedef struct _PopplerAnnotScreenClass         PopplerAnnotScreenClass;
 typedef struct _PopplerAnnotLineClass           PopplerAnnotLineClass;
 typedef struct _PopplerAnnotCircleClass         PopplerAnnotCircleClass;
 typedef struct _PopplerAnnotSquareClass         PopplerAnnotSquareClass;
+typedef struct _PopplerAnnotInkClass            PopplerAnnotInkClass;
+typedef struct _PopplerAnnotPaths               PopplerAnnotPaths;
 
 struct _PopplerAnnotClass
 {
@@ -150,6 +152,21 @@ struct _PopplerAnnotSquareClass
   PopplerAnnotMarkupClass parent_class;
 };
 
+struct _PopplerAnnotInk
+{
+  PopplerAnnotMarkup parent_instance;
+};
+struct _PopplerAnnotInkClass
+{
+  PopplerAnnotMarkupClass parent_class;
+};
+
+struct _PopplerAnnotPaths
+{
+  AnnotPath **paths;
+  int num_paths;
+};
+
 G_DEFINE_TYPE (PopplerAnnot, poppler_annot, G_TYPE_OBJECT)
 G_DEFINE_TYPE (PopplerAnnotMarkup, poppler_annot_markup, POPPLER_TYPE_ANNOT)
 G_DEFINE_TYPE (PopplerAnnotTextMarkup, poppler_annot_text_markup, POPPLER_TYPE_ANNOT_MARKUP)
@@ -161,6 +178,7 @@ G_DEFINE_TYPE (PopplerAnnotScreen, poppler_annot_screen, POPPLER_TYPE_ANNOT)
 G_DEFINE_TYPE (PopplerAnnotLine, poppler_annot_line, POPPLER_TYPE_ANNOT_MARKUP)
 G_DEFINE_TYPE (PopplerAnnotCircle, poppler_annot_circle, POPPLER_TYPE_ANNOT_MARKUP)
 G_DEFINE_TYPE (PopplerAnnotSquare, poppler_annot_square, POPPLER_TYPE_ANNOT_MARKUP)
+G_DEFINE_TYPE (PopplerAnnotInk, poppler_annot_ink, POPPLER_TYPE_ANNOT_MARKUP)
 
 static PopplerAnnot *
 _poppler_create_annot (GType annot_type, Annot *annot)
@@ -707,6 +725,50 @@ poppler_annot_square_new (PopplerDocument  *doc,
 
   return _poppler_annot_square_new (annot);
 }
+
+
+PopplerAnnot *
+_poppler_annot_ink_new (Annot *annot)
+{
+  return _poppler_create_annot (POPPLER_TYPE_ANNOT_INK, annot);
+}
+
+static void
+poppler_annot_ink_init (PopplerAnnotInk *poppler_annot)
+{
+}
+
+static void
+poppler_annot_ink_class_init (PopplerAnnotInkClass *klass)
+{
+}
+
+/**
+ * poppler_annot_circle_new:
+ * @doc: a #PopplerDocument
+ * @rect: a #PopplerRectangle
+ *
+ * Creates a new Ink annotation that will be
+ * located on @rect when added to a page. See
+ * poppler_page_add_annot()
+ *
+ * Return value: a newly created #PopplerAnnotInk annotation
+ *
+ * Since: Ink Annot patch
+ **/
+PopplerAnnot *
+poppler_annot_ink_new (PopplerDocument  *doc,
+			  PopplerRectangle *rect)
+{
+  Annot *annot;
+  PDFRectangle pdf_rect(rect->x1, rect->y1,
+			rect->x2, rect->y2);
+
+  annot = new AnnotInk (doc->doc, &pdf_rect);
+
+  return _poppler_annot_ink_new (annot);
+}
+
 
 /* Public methods */
 /**
@@ -1993,4 +2055,98 @@ poppler_annot_square_set_interior_color (PopplerAnnotSquare *poppler_annot,
   g_return_if_fail (POPPLER_IS_ANNOT_SQUARE (poppler_annot));
 
   poppler_annot_geometry_set_interior_color (POPPLER_ANNOT (poppler_annot), poppler_color);
+}
+
+
+/* paths object ... */
+/* Creates a reference to the original AnnotPath**. */
+static 
+PopplerAnnotPaths *poppler_annot_paths_new_from_annot_paths( AnnotPath **paths, int n )
+{
+    PopplerAnnotPaths *p_paths = (PopplerAnnotPaths*)
+        g_malloc(sizeof(PopplerAnnotPaths));
+
+    p_paths->paths = paths;
+    p_paths->num_paths = n;
+
+    return p_paths;
+}
+
+
+/* binders to the C++ functions. sigh i hate gobject */
+PopplerAnnotPaths*
+poppler_annot_ink_get_ink_list (PopplerAnnotInk *poppler_annot)
+{
+    PopplerAnnotPaths *paths = poppler_annot_paths_new_from_annot_paths(
+                                static_cast<AnnotInk*>(POPPLER_ANNOT(poppler_annot)->annot)
+                                    ->getInkList(),
+                                static_cast<AnnotInk*>(POPPLER_ANNOT(poppler_annot)->annot)
+                                    ->getInkListLength()
+                                );
+
+    return paths;
+}
+void poppler_annot_ink_set_ink_list (PopplerAnnotInk *poppler_annot,
+                     PopplerAnnotPaths *paths,
+                     int npaths)
+{
+    static_cast<AnnotInk*>(POPPLER_ANNOT(poppler_annot)->annot)
+        ->setInkList(paths->paths, paths->num_paths);
+}
+//void poppler_annot_ink_free_ink_list (PopplerAnnotInk *poppler_annot)
+//{
+//    POPPLER_ANNOT(poppler_annot)->annot->freeInkList();
+//}
+GArray *poppler_annot_paths_create_array(PopplerAnnotPaths *annot_paths)
+{
+    AnnotPath **paths = annot_paths->paths;
+	int num_paths = annot_paths->num_paths;
+
+    GArray *arr = g_array_sized_new(0, 0, sizeof(GArray *), num_paths);
+    
+    for (int i=0; i<num_paths; i++) {
+        AnnotPath *path = paths[i];
+        int coordsLength = path->getCoordsLength();
+        GArray *arr_path = g_array_sized_new(0, 0, sizeof(double), coordsLength * 2);
+
+        for (int j=0; j<coordsLength; j++) {
+            double x = path->getX(j);
+            double y = path->getY(j);
+            g_array_append_val(arr_path, x);
+            g_array_append_val(arr_path, y);
+        }
+        g_array_append_val(arr, arr_path);
+    }
+    return arr;
+}
+
+
+int
+poppler_annot_paths_get_length(PopplerAnnotPaths *annot_paths)
+{
+    return annot_paths->num_paths;
+}
+
+gpointer poppler_annot_paths_index(PopplerAnnotPaths *annot_paths, int index)
+{
+    return annot_paths->paths[index];
+}
+
+int  poppler_annot_path_get_length
+(gconstpointer annot_path)
+{
+    return ( (AnnotPath*) annot_path )->getCoordsLength();
+}
+
+gboolean
+poppler_annot_path_index (gconstpointer annot_paths, int index, double *x, double *y)
+{
+    AnnotPath *path = (AnnotPath*) annot_paths;
+
+    g_assert(index < path->getCoordsLength());
+    
+    if (x) *x = path->getX(index);
+    if (y) *y = path->getY(index);
+
+    return TRUE;
 }

@@ -73,6 +73,10 @@ G_BEGIN_DECLS
 #define POPPLER_ANNOT_SQUARE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), POPPLER_TYPE_ANNOT_SQUARE, PopplerAnnotSquare))
 #define POPPLER_IS_ANNOT_SQUARE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), POPPLER_TYPE_ANNOT_SQUARE))
 
+#define POPPLER_TYPE_ANNOT_INK            (poppler_annot_ink_get_type ())
+#define POPPLER_ANNOT_INK(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), POPPLER_TYPE_ANNOT_INK, PopplerAnnotInk))
+#define POPPLER_IS_ANNOT_INK(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), POPPLER_TYPE_ANNOT_INK))
+
 typedef enum
 {
   POPPLER_ANNOT_UNKNOWN,
@@ -290,6 +294,22 @@ PopplerAnnot                 *poppler_annot_square_new                         (
 void                          poppler_annot_square_set_interior_color          (PopplerAnnotSquare *poppler_annot,
 										PopplerColor       *poppler_color);
 PopplerColor                 *poppler_annot_square_get_interior_color          (PopplerAnnotSquare *poppler_annot);
+
+/* PopplerAnnotInk */
+GType                         poppler_annot_ink_get_type                    (void) G_GNUC_CONST;
+PopplerAnnotPaths*
+poppler_annot_ink_get_ink_list (PopplerAnnotInk *poppler_annot);
+void poppler_annot_ink_set_ink_list (PopplerAnnotInk *poppler_annot,
+                     PopplerAnnotPaths *paths,
+                     int npaths);
+
+/* PopplerAnnotPaths */
+int  poppler_annot_paths_get_length(PopplerAnnotPaths *annot_paths);
+gpointer poppler_annot_paths_index(PopplerAnnotPaths *annot_paths, int index);
+
+int  poppler_annot_path_get_length(gconstpointer annot_path);
+gboolean poppler_annot_path_index(gconstpointer annot_paths, int index, double *x, double *y);
+//PopplerAnnotPaths *poppler_annot_paths_new_from_annot_paths( AnnotPath **paths, int n );
 
 G_END_DECLS
 

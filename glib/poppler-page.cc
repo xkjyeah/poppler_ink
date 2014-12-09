@@ -1412,6 +1412,9 @@ poppler_page_get_annot_mapping (PopplerPage *page)
       case Annot::typeStrikeOut:
         mapping->annot = _poppler_annot_text_markup_new (annot);
         break;
+      case Annot::typeInk:
+        mapping->annot = _poppler_annot_ink_new (annot);
+	break;
       default:
         mapping->annot = _poppler_annot_new (annot);
 	break;
