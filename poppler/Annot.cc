@@ -646,12 +646,22 @@ AnnotBorderBS::AnnotBorderBS(Dict *dict) {
   // that behaviour by veryifying both entries exist
   // otherwise we set the borderWidth to 0
   // --jrmuizel
+  // 
+  // The above behaviour seems to have disappeared in 
+  // acroread 10 and higher. For acroread 10 it 
+  // doesn't even put 'S' for ink annotations.
+  // -- xkjyeah
   dict->lookup("W", &obj1);
   dict->lookup("S", &obj2);
-  if (obj1.isNum() && obj2.isName()) {
-    const char *styleName = obj2.getName();
-
+  if (obj1.isNum()) {
     width = obj1.getNum();
+  }
+  else {
+    width = 0;
+  }
+  
+  if (obj2.isName()) {
+    const char *styleName = obj2.getName();
 
     if (!strcmp(styleName, "S")) {
       style = borderSolid;
@@ -666,8 +676,9 @@ AnnotBorderBS::AnnotBorderBS(Dict *dict) {
     } else {
       style = borderSolid;
     }
-  } else {
-    width = 0;
+  }
+  else {
+    style = borderSolid;
   }
   obj2.free();
   obj1.free();

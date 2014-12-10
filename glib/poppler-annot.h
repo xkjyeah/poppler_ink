@@ -192,6 +192,7 @@ void                          poppler_annot_get_rectangle                      (
 										PopplerRectangle *poppler_rect);
 void                          poppler_annot_set_rectangle                      (PopplerAnnot     *poppler_annot,
 										PopplerRectangle *poppler_rect);
+PopplerAnnotBorder*           poppler_annot_get_border                         (PopplerAnnot *poppler_annot);                                        
 
 /* PopplerAnnotMarkup */
 GType                         poppler_annot_markup_get_type                    (void) G_GNUC_CONST;
@@ -310,6 +311,7 @@ gpointer poppler_annot_paths_index(PopplerAnnotPaths *annot_paths, int index);
 int  poppler_annot_path_get_length(gconstpointer annot_path);
 gboolean poppler_annot_path_index(gconstpointer annot_paths, int index, double *x, double *y);
 //PopplerAnnotPaths *poppler_annot_paths_new_from_annot_paths( AnnotPath **paths, int n );
+
 
 G_END_DECLS
 

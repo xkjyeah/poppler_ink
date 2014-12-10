@@ -235,6 +235,7 @@ const char *   poppler_get_version (void);
 
 G_END_DECLS
 
+#include "poppler-object.h"
 #include "poppler-features.h"
 #include "poppler-document.h"
 #include "poppler-page.h"

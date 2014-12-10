@@ -180,6 +180,8 @@ G_DEFINE_TYPE (PopplerAnnotCircle, poppler_annot_circle, POPPLER_TYPE_ANNOT_MARK
 G_DEFINE_TYPE (PopplerAnnotSquare, poppler_annot_square, POPPLER_TYPE_ANNOT_MARKUP)
 G_DEFINE_TYPE (PopplerAnnotInk, poppler_annot_ink, POPPLER_TYPE_ANNOT_MARKUP)
 
+
+
 static PopplerAnnot *
 _poppler_create_annot (GType annot_type, Annot *annot)
 {
@@ -971,6 +973,14 @@ poppler_annot_set_flags (PopplerAnnot *poppler_annot, PopplerAnnotFlag flags)
     return;
 
   poppler_annot->annot->setFlags ((guint) flags);
+}
+
+PopplerAnnotBorder *
+poppler_annot_get_border (PopplerAnnot *poppler_annot)
+{
+  g_return_val_if_fail (POPPLER_IS_ANNOT (poppler_annot), NULL);
+
+  return (PopplerAnnotBorder*)poppler_annot->annot->getBorder();
 }
 
 static PopplerColor *
