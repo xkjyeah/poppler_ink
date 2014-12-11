@@ -214,6 +214,7 @@ typedef struct _PopplerStructureElement    PopplerStructureElement;
 typedef struct _PopplerStructureElementIter PopplerStructureElementIter;
 typedef struct _PopplerTextSpan            PopplerTextSpan;
 typedef struct _PopplerAnnotPaths               PopplerAnnotPaths;
+typedef struct _PopplerAnnotPath               PopplerAnnotPath;
 
 /**
  * PopplerBackend:

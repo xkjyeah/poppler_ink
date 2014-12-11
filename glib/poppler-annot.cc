@@ -2070,8 +2070,38 @@ poppler_annot_square_set_interior_color (PopplerAnnotSquare *poppler_annot,
 
 /* paths object ... */
 /* Creates a reference to the original AnnotPath**. */
-static 
-PopplerAnnotPaths *poppler_annot_paths_new_from_annot_paths( AnnotPath **paths, int n )
+PopplerAnnotPaths *
+poppler_annot_paths_new (int n)
+{
+    PopplerAnnotPaths *p_paths = (PopplerAnnotPaths*)
+        g_malloc(sizeof(PopplerAnnotPaths));
+
+    p_paths->paths = (AnnotPath**) g_malloc(n * sizeof(AnnotPath*));
+    p_paths->num_paths = n;
+
+
+    memset(p_paths->paths, 0, n*sizeof(AnnotPath*));
+    
+    return p_paths;
+}
+
+PopplerAnnotPath *
+poppler_annot_path_new (PopplerPoint *data, int n)
+{
+    AnnotCoord **coords;
+
+    coords = (AnnotCoord**) g_malloc(n * sizeof(AnnotCoord*));
+    for (int i=0; i<n; i++) {
+        coords[i] = new AnnotCoord(data[i].x, data[i].y);
+    }
+
+    AnnotPath *annotPath = new AnnotPath (coords, n);
+    
+    return (PopplerAnnotPath*) annotPath;
+}
+
+static PopplerAnnotPaths *
+poppler_annot_paths_new_from_annot_paths (AnnotPath **paths, int n)
 {
     PopplerAnnotPaths *p_paths = (PopplerAnnotPaths*)
         g_malloc(sizeof(PopplerAnnotPaths));
@@ -2096,13 +2126,14 @@ poppler_annot_ink_get_ink_list (PopplerAnnotInk *poppler_annot)
 
     return paths;
 }
+
 void poppler_annot_ink_set_ink_list (PopplerAnnotInk *poppler_annot,
-                     PopplerAnnotPaths *paths,
-                     int npaths)
+                     PopplerAnnotPaths *paths)
 {
     static_cast<AnnotInk*>(POPPLER_ANNOT(poppler_annot)->annot)
         ->setInkList(paths->paths, paths->num_paths);
 }
+
 //void poppler_annot_ink_free_ink_list (PopplerAnnotInk *poppler_annot)
 //{
 //    POPPLER_ANNOT(poppler_annot)->annot->freeInkList();
@@ -2137,19 +2168,26 @@ poppler_annot_paths_get_length(PopplerAnnotPaths *annot_paths)
     return annot_paths->num_paths;
 }
 
-gpointer poppler_annot_paths_index(PopplerAnnotPaths *annot_paths, int index)
+PopplerAnnotPath *
+poppler_annot_paths_get (PopplerAnnotPaths *annot_paths, int index)
 {
-    return annot_paths->paths[index];
+    return (PopplerAnnotPath*) annot_paths->paths[index];
+}
+
+void
+poppler_annot_paths_set (PopplerAnnotPaths *annot_paths, int index, PopplerAnnotPath *path)
+{
+    annot_paths->paths[index] = (AnnotPath*) path;
 }
 
 int  poppler_annot_path_get_length
-(gconstpointer annot_path)
+(PopplerAnnotPath *annot_path)
 {
     return ( (AnnotPath*) annot_path )->getCoordsLength();
 }
 
 gboolean
-poppler_annot_path_index (gconstpointer annot_paths, int index, double *x, double *y)
+poppler_annot_path_get (PopplerAnnotPath * annot_paths, int index, double *x, double *y)
 {
     AnnotPath *path = (AnnotPath*) annot_paths;
 
@@ -2160,3 +2198,5 @@ poppler_annot_path_index (gconstpointer annot_paths, int index, double *x, doubl
 
     return TRUE;
 }
+
+

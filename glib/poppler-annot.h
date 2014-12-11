@@ -297,19 +297,28 @@ void                          poppler_annot_square_set_interior_color          (
 PopplerColor                 *poppler_annot_square_get_interior_color          (PopplerAnnotSquare *poppler_annot);
 
 /* PopplerAnnotInk */
+PopplerAnnot                 *poppler_annot_ink_new                         (PopplerDocument    *doc,
+                                                                             PopplerRectangle   *rect);
 GType                         poppler_annot_ink_get_type                    (void) G_GNUC_CONST;
-PopplerAnnotPaths*
-poppler_annot_ink_get_ink_list (PopplerAnnotInk *poppler_annot);
-void poppler_annot_ink_set_ink_list (PopplerAnnotInk *poppler_annot,
-                     PopplerAnnotPaths *paths,
-                     int npaths);
+PopplerAnnotPaths*            poppler_annot_ink_get_ink_list                (PopplerAnnotInk *poppler_annot);
+void                          poppler_annot_ink_set_ink_list                (PopplerAnnotInk *poppler_annot,
+                                                                             PopplerAnnotPaths *paths);
 
 /* PopplerAnnotPaths */
-int  poppler_annot_paths_get_length(PopplerAnnotPaths *annot_paths);
-gpointer poppler_annot_paths_index(PopplerAnnotPaths *annot_paths, int index);
+PopplerAnnotPaths           *poppler_annot_paths_new            (int length);
+int                         poppler_annot_paths_get_length      (PopplerAnnotPaths *annot_paths);
+PopplerAnnotPath            *poppler_annot_paths_get            (PopplerAnnotPaths *annot_paths,
+                                                                int index);
+void                        poppler_annot_paths_set            (PopplerAnnotPaths *annot_paths,
+                                                                int index,
+                                                                PopplerAnnotPath *path);
 
-int  poppler_annot_path_get_length(gconstpointer annot_path);
-gboolean poppler_annot_path_index(gconstpointer annot_paths, int index, double *x, double *y);
+PopplerAnnotPath           *poppler_annot_path_new              (PopplerPoint *data, int length);
+int                         poppler_annot_path_get_length       (PopplerAnnotPath* annot_path);
+gboolean                    poppler_annot_path_get              (PopplerAnnotPath * annot_paths,
+                                                                int index, 
+                                                                double *x, 
+                                                                double *y);
 //PopplerAnnotPaths *poppler_annot_paths_new_from_annot_paths( AnnotPath **paths, int n );
 
 
