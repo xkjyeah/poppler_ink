@@ -895,6 +895,36 @@ AnnotAppearance::~AnnotAppearance() {
   appearDict.free();
 }
 
+void AnnotAppearance::setAppearanceStream(AnnotAppearanceType type, const char *state, Object &src) {
+    const char *key = AnnotAppearance::appearanceTypeToKey(type); 
+
+    if (state) {
+        // state is defined. Replace only the specified
+        // state within the dictionary.
+        // If previous entry was not a dictionary, then
+        // replace whatever data was there before.
+        //
+        Object states;
+        Object apData;
+
+        appearDict.dictLookupNF(key, &apData);
+
+        if (!apData.isDict()) { // wasn't previously a dictionary. reset it
+            states.initDict(xref);
+        }
+        else {
+            apData.copy(&states);
+        }
+        
+        states.dictSet(state, &src);
+        appearDict.dictSet(key, &states);
+    }
+    else {
+        // we simply replace the entry with the stream
+        appearDict.dictSet(key, &src);
+    }
+}
+
 void AnnotAppearance::getAppearanceStream(AnnotAppearanceType type, const char *state, Object *dest) {
   Object apData, stream;
   apData.initNull();
@@ -921,6 +951,7 @@ void AnnotAppearance::getAppearanceStream(AnnotAppearanceType type, const char *
     apData.copy(dest);
   apData.free();
 }
+
 
 GooString * AnnotAppearance::getStateKey(int i) {
   Object obj1;
@@ -1470,6 +1501,34 @@ void Annot::setName(GooString *new_name) {
   Object obj1;
   obj1.initString(name->copy());
   update ("NM", &obj1);
+}
+
+/* 
+ * Sets the appearance stream and BBox for a particular state.
+ *
+ * If the appearance state is NULL, then it becomes the only appearance stream.
+ *
+ * FIXME: what is the opacity for? where should we set it?
+ * FIXME: support matrices
+ * */
+void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
+                            const char *state,
+                            const char *drawing,
+                            PDFRectangle *bbox) {
+    assert(bbox);
+
+    // Create the form
+    Object aStream, apEntry;
+    double dbbox[4];
+    if (appearBBox) {
+        delete appearBBox;
+    }
+    appearBBox = new AnnotAppearanceBBox(rect);
+    appearBBox->getBBoxRect(dbbox);
+    appearBuf = new GooString(drawing);
+    createForm(dbbox, gFalse, NULL, &apEntry); // bbox comes from the BBox
+
+    appearStreams->setAppearanceStream(type, state, apEntry);
 }
 
 void Annot::setModified(GooString *new_modified) {

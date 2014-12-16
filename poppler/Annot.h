@@ -385,6 +385,9 @@ public:
 
   // State is ignored if no subdictionary is present
   void getAppearanceStream(AnnotAppearanceType type, const char *state, Object *dest);
+  // Adds a content stream to the appearance, along with a BBox
+  // and a transformation matrix
+  void setAppearanceStream(AnnotAppearanceType type, const char *state, Object &src);
 
   // Access keys in normal appearance subdictionary (N)
   GooString * getStateKey(int i);
@@ -406,6 +409,11 @@ protected:
   PDFDoc *doc;
   XRef *xref;                   // the xref table for this PDF file
   Object appearDict;            // Annotation's AP
+
+  static const char *appearanceTypeToKey(AnnotAppearanceType type) {
+    return (type == appearDown)      ? "D" :
+           (type == appearRollover)  ? "R" : "N";
+  }
 };
 
 //------------------------------------------------------------------------
@@ -607,6 +615,7 @@ public:
   Guint getFlags() const { return flags; }
   AnnotAppearance *getAppearStreams() const { return appearStreams; }
   GooString *getAppearState() const { return appearState; }
+  void setAppearance(AnnotAppearance::AnnotAppearanceType type, const char *state, const char *drawing, PDFRectangle *bbox);
   AnnotBorder *getBorder() const { return border; }
   AnnotColor *getColor() const { return color; }
   int getTreeKey() const { return treeKey; }
