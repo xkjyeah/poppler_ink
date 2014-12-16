@@ -9,6 +9,11 @@ lib_LTLIBRARIES = libpoppler.la
 
 if BUILD_CAIRO_OUTPUT
 noinst_LTLIBRARIES = libpoppler-cairo.la
+
+cairo_headers=$(CAIRO_CFLAGS)
+cairo_includes=$(CAIRO_CFLAGS)
+cairo_libs=$(CAIRO_LIBS)
+
 endif
 
 if BUILD_SPLASH_OUTPUT
@@ -270,6 +275,7 @@ libpoppler_la_SOURCES =		\
 libpoppler_la_CPPFLAGS =			\
 	$(cms_includes)				\
 	$(splash_includes)			\
+	$(cairo_headers)	\
 	$(libjpeg_includes)			\
 	$(libtiff_includes)			\
 	$(libjpeg2000_includes)			\
@@ -284,6 +290,7 @@ libpoppler_la_LIBADD =				\
 	$(top_builddir)/fofi/libfofi.la		\
 	$(cms_libs)				\
 	$(splash_libs)				\
+	$(cairo_libs)	\
 	$(libtiff_libs)				\
 	$(libjpeg_libs)				\
 	$(libpng_libs)				\

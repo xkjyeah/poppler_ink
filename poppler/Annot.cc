@@ -1518,18 +1518,67 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
     assert(bbox);
 
     // Create the form
-    Object aStream, apEntry;
+    Object aStream;
     double dbbox[4];
     if (appearBBox) {
         delete appearBBox;
     }
-    appearBBox = new AnnotAppearanceBBox(rect);
+    if (!bbox) {
+        bbox = this->rect;
+    }
+    appearBBox = new AnnotAppearanceBBox(bbox);
     appearBBox->getBBoxRect(dbbox);
     appearBuf = new GooString(drawing);
-    createForm(dbbox, gFalse, NULL, &apEntry); // bbox comes from the BBox
+    createForm(dbbox, gFalse, NULL, &this->appearance); // bbox comes from the BBox
 
-    appearStreams->setAppearanceStream(type, state, apEntry);
+    appearStreams->setAppearanceStream(type, state, this->appearance);
 }
+
+#ifdef HAVE_CAIRO
+static void write_to_string(GooString *drawing, const char *data, unsigned int length)
+{
+    drawing->append(data, length);
+}
+/* 
+ * Sets the appearance stream and BBox for a particular state.
+ * The appearance stream is defined using a Cairo surface,
+ * from which we can extract the drawing commands.
+ *
+ * If the appearance state is NULL, then it becomes the only appearance stream.
+ *
+ * FIXME: what is the opacity for? where should we set it?
+ * FIXME: support matrices
+ * */
+void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
+                            const char *state,
+                            cairo_surface_t *surf,
+                            PDFRectangle *bbox) {
+    GooString drawing;
+    cairo_device_t *script_dev = 
+        cairo_script_create_for_stream(write_to_string, drawing);
+    cairo_surface_t *surface_dev =
+        cairo_script_surface_create(script_dev, CAIRO_CONTENT_COLOR_ALPHA,
+                                    bbox.x2 - bbox.x1, bbox.y2 - bbox.y1);
+    cairo_t *cr = cairo_create(surface_dev);
+
+    cairo_set_source_surface(cr, surf, 0, 0);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+
+    cairo_surface_destroy(surface_dev);
+    
+    // Save the surface. We can then return it to the
+    // program, which the program can use to draw the annotation
+    
+    // TODO: destroy past references
+    //
+    cairo_surface_reference(surf);
+    
+    this->setAppearance(type, state, drawing.getCString(), bbox);
+}
+#else
+#warn No cairo-based setAppearance
+#endif
 
 void Annot::setModified(GooString *new_modified) {
   annotLocker();

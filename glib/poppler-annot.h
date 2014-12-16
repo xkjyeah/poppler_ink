@@ -193,6 +193,14 @@ void                          poppler_annot_get_rectangle                      (
 void                          poppler_annot_set_rectangle                      (PopplerAnnot     *poppler_annot,
 										PopplerRectangle *poppler_rect);
 PopplerAnnotBorder*           poppler_annot_get_border                         (PopplerAnnot *poppler_annot);                                        
+void                          poppler_annot_set_appearance                     (PopplerAnnotAppearanceType type,
+                                                                                const char *state,
+                                                                                const char *drawing,
+                                                                                PopplerRectangle *poppler_rect);
+void                          poppler_annot_set_appearance_cairo               (PopplerAnnotAppearanceType type,
+                                                                                const char *state,
+                                                                                cairo_surface_t *cr,
+                                                                                PopplerRectangle *poppler_rect);
 
 /* PopplerAnnotMarkup */
 GType                         poppler_annot_markup_get_type                    (void) G_GNUC_CONST;
