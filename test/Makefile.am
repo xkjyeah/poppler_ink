@@ -1,7 +1,13 @@
+if BUILD_CAIRO_OUTPUT
+cairo_headers=$(CAIRO_CFLAGS)
+cairo_includes=$(CAIRO_CFLAGS)
+cairo_libs=$(CAIRO_LIBS)
+endif
 AM_LDFLAGS = @auto_import_flags@
 
 AM_CPPFLAGS =					\
 	-I$(top_srcdir)				\
+	$(cairo_includes)			\
 	-I$(top_srcdir)/poppler
 
 noinst_PROGRAMS = pdf-fullrewrite

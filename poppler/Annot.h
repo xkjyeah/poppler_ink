@@ -41,7 +41,7 @@
 
 #include "Object.h"
 
-#ifdef HAVE_CAIRO
+#if HAVE_CAIRO
 #include <cairo.h>
 #endif
 
@@ -620,7 +620,7 @@ public:
   AnnotAppearance *getAppearStreams() const { return appearStreams; }
   GooString *getAppearState() const { return appearState; }
   void setAppearance(AnnotAppearance::AnnotAppearanceType type, const char *state, const char *drawing, PDFRectangle *bbox);
-  #ifdef HAVE_CAIRO
+  #if HAVE_CAIRO
   void setAppearance(AnnotAppearance::AnnotAppearanceType type, const char *state, cairo_surface_t *surf, PDFRectangle *bbox);
   #endif
   AnnotBorder *getBorder() const { return border; }

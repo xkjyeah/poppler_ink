@@ -72,6 +72,10 @@
 #include "Link.h"
 #include <string.h>
 
+#if HAVE_CAIRO
+#include <cairo-script.h>
+#endif
+
 #if MULTITHREADED
 #  define annotLocker()   MutexLocker locker(&mutex)
 #  define annotCondLocker(X)  MutexLocker locker(&mutex, (X))
@@ -1535,9 +1539,11 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
 }
 
 #ifdef HAVE_CAIRO
-static void write_to_string(GooString *drawing, const char *data, unsigned int length)
+static cairo_status_t write_to_string(void *drawing_void, const unsigned char *data, unsigned int length)
 {
-    drawing->append(data, length);
+    GooString *drawing = (GooString*)drawing_void;
+    drawing->append((const char *)data, length);
+    return CAIRO_STATUS_SUCCESS;
 }
 /* 
  * Sets the appearance stream and BBox for a particular state.
@@ -1555,10 +1561,10 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
                             PDFRectangle *bbox) {
     GooString drawing;
     cairo_device_t *script_dev = 
-        cairo_script_create_for_stream(write_to_string, drawing);
+        cairo_script_create_for_stream(write_to_string, &drawing);
     cairo_surface_t *surface_dev =
         cairo_script_surface_create(script_dev, CAIRO_CONTENT_COLOR_ALPHA,
-                                    bbox.x2 - bbox.x1, bbox.y2 - bbox.y1);
+                                    bbox->x2 - bbox->x1, bbox->y2 - bbox->y1);
     cairo_t *cr = cairo_create(surface_dev);
 
     cairo_set_source_surface(cr, surf, 0, 0);

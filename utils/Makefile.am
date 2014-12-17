@@ -1,3 +1,9 @@
+if BUILD_CAIRO_OUTPUT
+cairo_headers=$(CAIRO_CFLAGS)
+cairo_includes=$(CAIRO_CFLAGS)
+cairo_libs=$(CAIRO_LIBS)
+endif
+
 AM_LDFLAGS = @auto_import_flags@
 
 AM_CPPFLAGS =					\
@@ -5,6 +11,7 @@ AM_CPPFLAGS =					\
 	-I$(top_srcdir)/goo			\
 	-I$(top_srcdir)/utils			\
 	-I$(top_srcdir)/poppler			\
+	$(cairo_includes)			\
 	$(UTILS_CFLAGS)
 
 LDADD =						\

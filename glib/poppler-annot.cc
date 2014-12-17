@@ -983,6 +983,41 @@ poppler_annot_get_border (PopplerAnnot *poppler_annot)
   return (PopplerAnnotBorder*)poppler_annot->annot->getBorder();
 }
 
+void                          
+poppler_annot_set_appearance (PopplerAnnot *annot,
+                                PopplerAnnotAppearanceType type,
+                                const char *state,
+                                const char *drawing,
+                                PopplerRectangle *poppler_rect)
+{
+   PDFRectangle pdf_rect;
+
+   pdf_rect.x1 = poppler_rect->x1;
+   pdf_rect.y1 = poppler_rect->y1;
+   pdf_rect.x2 = poppler_rect->x2;
+   pdf_rect.y2 = poppler_rect->y2;
+
+   AnnotAppearance::AnnotAppearanceType atype =
+        (type == POPPLER_ANNOT_APPEARANCE_NORMAL) ? AnnotAppearance::appearNormal :
+        (type == POPPLER_ANNOT_APPEARANCE_ROLLOVER) ? AnnotAppearance::appearRollover :
+        (type == POPPLER_ANNOT_APPEARANCE_DOWN) ? AnnotAppearance::appearDown : 
+                        AnnotAppearance::appearNormal;
+
+   annot->annot->setAppearance(atype, state, drawing, &pdf_rect);
+}
+
+#if POPPLER_HAS_CAIRO
+void
+poppler_annot_set_appearance_cairo (PopplerAnnot *annot,
+                                    PopplerAnnotAppearanceType type,
+                                    const char *state,
+                                    cairo_surface_t *cr,
+                                    PopplerRectangle *poppler_rect)
+{
+    g_assert_not_reached();
+}
+#endif
+
 static PopplerColor *
 create_poppler_color_from_annot_color (AnnotColor *color)
 {
