@@ -902,7 +902,7 @@ AnnotAppearance::~AnnotAppearance() {
 void AnnotAppearance::setAppearanceStream(AnnotAppearanceType type, const char *state, Object &src) {
     const char *key = AnnotAppearance::appearanceTypeToKey(type); 
 
-    if (state) {
+    if (state != 0) {
         // state is defined. Replace only the specified
         // state within the dictionary.
         // If previous entry was not a dictionary, then
@@ -1533,8 +1533,24 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
     appearBBox = new AnnotAppearanceBBox(bbox);
     appearBBox->getBBoxRect(dbbox);
     appearBuf = new GooString(drawing);
+    // build, using dbbox and appearBuf, the form object
+    // that describes the appearance of this annotation.
     createForm(dbbox, gFalse, NULL, &this->appearance); // bbox comes from the BBox
 
+    if (!appearStreams) {
+        // initialize appearStreams to
+        Object initAP;
+        Object nullObject;
+        Dict *initAPDict = new Dict(xref);
+
+        nullObject.initNull(); // this will be overwritten anyway
+        initAPDict->set("N", &nullObject);
+        initAP.initDict(initAPDict);
+ 
+        appearStreams = new AnnotAppearance(doc, &initAP);
+
+        delete initAPDict;
+    }
     appearStreams->setAppearanceStream(type, state, this->appearance);
 }
 
