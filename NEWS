@@ -1,3 +1,69 @@
+Release 0.32.0
+        core:
+         * Annotations: Fix rendering of empty BG/BC arrays
+         * Splash: Fix wrong colour shown when GouraudTriangleShFill uses a DeviceN colorspace. Bug #89182
+         * Splash: Fix use of uninitialized variable in Splash::pipeRun
+         * Remove unnecesary check for font validity. Bug #88939
+         * Small optimization in GooString::appendfv(). Bug #89096
+         * Fix crashes in malformed files
+
+        utils:
+         * pdftops: Make colorpsace optimization an option instead of default
+         * pdfseparate: use always an unique instance for PDFDoc for savePageAs
+
+        build system:
+         * cmake: If extra-cmake-modules is around include the Sanitizers module
+
+Release 0.31.0
+        core:
+         * CairoOutputDev: support embedding JBIG2 image data
+         * Accept malformed documents whose root is a Page instead of a Pages. Bug #88172
+         * Fix crash on broken documents
+         * JPEG2000Stream: Inline doGetChar and doLookChar
+         * GlobalParams cleaning
+
+        utils:
+         * pdftops: Add rasterization option. Bug #85934
+
+        qt4:
+         * Expose whole-words search option
+
+        qt5:
+         * Expose whole-words search option
+
+Release 0.30.0
+        core:
+         * Openjpeg2 support (openjpeg 1 is preferred). Bug #58906
+         * Fix potential memory corruption on TextSelectionDumper. Bug #84555
+         * Check for invalid matrix in annotation. Bug #84990
+         * Open some not conforming files. Bug #85919
+         * PSOutputDev: Accept a list of pages indeces instead of first, last. Bug #84833
+         * Fix memory leak on error condition
+
+        cpp:
+         * New API to set debug output function
+
+        build system:
+         * configure: Improve support with older clang versions. Bug #76963
+
+        utils:
+         * pdfunite: Support output intents, optional content and acroform
+
+Release 0.29.0
+        core:
+         * Use correct LAB byte array for lcms input. Bug #86388
+         * Write correct size in trailer dict. Bug #86063
+         * Use Default colorspaces if present instead of Device colorspaces
+         * Solve blend mode problem in CYMK and DeviceN for separable blend modes
+         * Compilation/warning fixes on SunOS
+         * Regression test improvements
+
+        glib:
+         * demo: Compilation fixlets
+
+        build system:
+         * cofigure: print "no" instead of "auto" if lcms not found
+
 Release 0.28.0
         core:
          * Fix rendering of file with a wrong embedded font. Bug #84270

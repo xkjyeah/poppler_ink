@@ -20,7 +20,7 @@
 // Copyright (C) 2006 Jeff Muizelaar <jeff@infidigm.net>
 // Copyright (C) 2007, 2008, 2012 Adrian Johnson <ajohnson@redneon.com>
 // Copyright (C) 2008 Koji Otani <sho@bbr.jp>
-// Copyright (C) 2008, 2010-2012, 2014 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2008, 2010-2012, 2014, 2015 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2008 Pino Toscano <pino@kde.org>
 // Copyright (C) 2008, 2010 Hib Eris <hib@hiberis.nl>
 // Copyright (C) 2009 Ross Moore <ross@maths.mq.edu.au>
@@ -30,7 +30,7 @@
 // Copyright (C) 2010 Suzuki Toshiya <mpsuzuki@hiroshima-u.ac.jp>
 // Copyright (C) 2011 Sam Liao <phyomh@gmail.com>
 // Copyright (C) 2012 Horst Prote <prote@fmi.uni-stuttgart.de>
-// Copyright (C) 2012, 2013 Jason Crain <jason@aquaticape.us>
+// Copyright (C) 2012, 2013, 2014 Jason Crain <jason@aquaticape.us>
 // Copyright (C) 2012 Peter Breitenlohner <peb@mppmu.mpg.de>
 // Copyright (C) 2013 José Aliste <jaliste@src.gnome.org>
 // Copyright (C) 2013 Thomas Freitag <Thomas.Freitag@alfa.de>
@@ -622,6 +622,10 @@ void TextPool::addWord(TextWord *word) {
   TextWord *w0, *w1;
 
   // expand the array if needed
+  if (unlikely((word->base / textPoolStep) > INT_MAX)) {
+      error(errSyntaxWarning, -1, "word->base / textPoolStep > INT_MAX");
+      return;
+  }
   wordBaseIdx = (int)(word->base / textPoolStep);
   if (minBaseIdx > maxBaseIdx) {
     minBaseIdx = wordBaseIdx - 128;
@@ -4072,6 +4076,11 @@ void TextSelectionDumper::startLine()
 
 void TextSelectionDumper::finishLine()
 {
+  if (nLines == linesSize) {
+    linesSize *= 2;
+    lines = (GooList **)grealloc(lines, linesSize * sizeof(GooList *));
+  }
+
   if (words && words->getLength() > 0)
     lines[nLines++] = words;
   else if (words)
@@ -4087,11 +4096,6 @@ void TextSelectionDumper::visitLine (TextLine *line,
 				     PDFRectangle *selection)
 {
   TextLineFrag frag;
-
-  if (nLines == linesSize) {
-    linesSize *= 2;
-    lines = (GooList **)grealloc(lines, linesSize * sizeof(GooList *));
-  }
 
   frag.init(line, edge_begin, edge_end - edge_begin);
 

@@ -15,7 +15,7 @@
 //
 // Copyright (C) 2005 Martin Kretzschmar <martink@gnome.org>
 // Copyright (C) 2005, 2006 Kristian Høgsberg <krh@redhat.com>
-// Copyright (C) 2006-2009, 2011-2013 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2006-2009, 2011-2013, 2015 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2006 Jeff Muizelaar <jeff@infidigm.net>
 // Copyright (C) 2007, 2008 Brad Hards <bradh@kde.org>
 // Copyright (C) 2008, 2009 Koji Otani <sho@bbr.jp>
@@ -23,7 +23,7 @@
 // Copyright (C) 2009-2013 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2009 Till Kamppeter <till.kamppeter@gmail.com>
 // Copyright (C) 2009 Carlos Garcia Campos <carlosgc@gnome.org>
-// Copyright (C) 2009, 2011, 2012 William Bader <williambader@hotmail.com>
+// Copyright (C) 2009, 2011, 2012, 2014, 2015 William Bader <williambader@hotmail.com>
 // Copyright (C) 2009 Kovid Goyal <kovid@kovidgoyal.net>
 // Copyright (C) 2009-2011, 2013, 2014 Adrian Johnson <ajohnson@redneon.com>
 // Copyright (C) 2012, 2014 Fabio D'Urso <fabiodurso@hotmail.it>
@@ -1074,7 +1074,7 @@ static void outputToFile(void *stream, const char *data, int len) {
 
 PSOutputDev::PSOutputDev(const char *fileName, PDFDoc *doc,
 			 char *psTitle,
-			 int firstPage, int lastPage, PSOutMode modeA,
+			 const std::vector<int> &pages, PSOutMode modeA,
 			 int paperWidthA, int paperHeightA,
                          GBool noCropA, GBool duplexA,
 			 int imgLLXA, int imgLLYA, int imgURXA, int imgURYA,
@@ -1136,7 +1136,7 @@ PSOutputDev::PSOutputDev(const char *fileName, PDFDoc *doc,
   }
 
   init(outputToFile, f, fileTypeA, psTitle,
-       doc, firstPage, lastPage, modeA,
+       doc, pages, modeA,
        imgLLXA, imgLLYA, imgURXA, imgURYA, manualCtrlA,
        paperWidthA, paperHeightA, noCropA, duplexA);
 }
@@ -1144,7 +1144,7 @@ PSOutputDev::PSOutputDev(const char *fileName, PDFDoc *doc,
 PSOutputDev::PSOutputDev(PSOutputFunc outputFuncA, void *outputStreamA,
 			 char *psTitle,
 			 PDFDoc *doc,
-			 int firstPage, int lastPage, PSOutMode modeA,
+			 const std::vector<int> &pages, PSOutMode modeA,
 			 int paperWidthA, int paperHeightA,
                          GBool noCropA, GBool duplexA,
 			 int imgLLXA, int imgLLYA, int imgURXA, int imgURYA,
@@ -1174,7 +1174,7 @@ PSOutputDev::PSOutputDev(PSOutputFunc outputFuncA, void *outputStreamA,
   forceRasterize = forceRasterizeA;
 
   init(outputFuncA, outputStreamA, psGeneric, psTitle,
-       doc, firstPage, lastPage, modeA,
+       doc, pages, modeA,
        imgLLXA, imgLLYA, imgURXA, imgURYA, manualCtrlA,
        paperWidthA, paperHeightA, noCropA, duplexA);
 }
@@ -1214,7 +1214,7 @@ static bool pageDimensionEqual(int a, int b) {
 
 void PSOutputDev::init(PSOutputFunc outputFuncA, void *outputStreamA,
 		       PSFileType fileTypeA, char *pstitle, PDFDoc *docA,
-		       int firstPage, int lastPage, PSOutMode modeA,
+		       const std::vector<int> &pagesA, PSOutMode modeA,
 		       int imgLLXA, int imgLLYA, int imgURXA, int imgURYA,
 		       GBool manualCtrlA, int paperWidthA, int paperHeightA,
 		       GBool noCropA, GBool duplexA) {
@@ -1222,9 +1222,28 @@ void PSOutputDev::init(PSOutputFunc outputFuncA, void *outputStreamA,
   PDFRectangle *box;
   PSOutPaperSize *size;
   GooList *names;
-  int pg, w, h, i;
+  int w, h, i;
+
+  if (pagesA.empty()) {
+    ok = gFalse;
+    return;
+  }
 
   // initialize
+  embedType1 = gTrue;
+  embedTrueType = gTrue;
+  embedCIDPostScript = gTrue;
+  embedCIDTrueType = gTrue;
+  fontPassthrough = gFalse;
+  optimizeColorSpace = gFalse;
+  preloadImagesForms = gFalse;
+  generateOPI = gFalse;
+  useASCIIHex = gFalse;
+  useBinary = gFalse;
+  rasterMono = gFalse;
+  rasterResolution = 300;
+  uncompressPreloadedImages = gFalse;
+  rasterAntialias = gFalse;
   displayText = gTrue;
   ok = gTrue;
   outputFunc = outputFuncA;
@@ -1249,9 +1268,8 @@ void PSOutputDev::init(PSOutputFunc outputFuncA, void *outputStreamA,
   }
   Page *page;
   paperSizes = new GooList();
-  for (pg = (firstPage >= 1) ? firstPage : 1;
-       pg <= lastPage && pg <= catalog->getNumPages();
-       ++pg) {
+  for (size_t pgi = 0; pgi < pagesA.size(); ++pgi) {
+    const int pg = pagesA[pgi];
     page = catalog->getPage(pg);
     if (page == NULL)
       paperMatch = gFalse;
@@ -1306,15 +1324,17 @@ void PSOutputDev::init(PSOutputFunc outputFuncA, void *outputStreamA,
     if (!paperMatch)
       break; // we only need one entry when all pages are the same size
   }
-  preload = globalParams->getPSPreload();
   if (imgLLX == 0 && imgURX == 0 && imgLLY == 0 && imgURY == 0) {
     imgLLX = imgLLY = 0;
     imgURX = paperWidth;
     imgURY = paperHeight;
   }
   manualCtrl = manualCtrlA;
+  std::vector<int> pages;
   if (mode == psModeForm) {
-    lastPage = firstPage;
+    pages.push_back(pagesA[0]);
+  } else {
+    pages = pagesA;
   }
   processColors = 0;
   inType3Char = gFalse;
@@ -1367,16 +1387,16 @@ void PSOutputDev::init(PSOutputFunc outputFuncA, void *outputStreamA,
   if (!manualCtrl) {
     Page *page;
     // this check is needed in case the document has zero pages
-    if ((page = doc->getPage(firstPage))) {
-      writeHeader(firstPage, lastPage,
+    if ((page = doc->getPage(pages[0]))) {
+      writeHeader(pages,
 		  page->getMediaBox(),
 		  page->getCropBox(),
 		  page->getRotate(),
 		  pstitle);
     } else {
-      error(errSyntaxError, -1, "Invalid page {0:d}", firstPage);
+      error(errSyntaxError, -1, "Invalid page {0:d}", pages[0]);
       box = new PDFRectangle(0, 0, 1, 1);
-      writeHeader(firstPage, lastPage, box, box, 0, pstitle);
+      writeHeader(pages, box, box, 0, pstitle);
       delete box;
     }
     if (mode != psModeForm) {
@@ -1387,7 +1407,7 @@ void PSOutputDev::init(PSOutputFunc outputFuncA, void *outputStreamA,
       writePS("%%EndProlog\n");
       writePS("%%BeginSetup\n");
     }
-    writeDocSetup(doc, catalog, firstPage, lastPage, duplexA);
+    writeDocSetup(doc, catalog, pages, duplexA);
     if (mode != psModeForm) {
       writePS("%%EndSetup\n");
     }
@@ -1463,7 +1483,7 @@ PSOutputDev::~PSOutputDev() {
   }
 }
 
-void PSOutputDev::writeHeader(int firstPage, int lastPage,
+void PSOutputDev::writeHeader(const std::vector<int> &pages,
 			      PDFRectangle *mediaBox, PDFRectangle *cropBox,
 			      int pageRotate, char *psTitle) {
   Object info, obj1;
@@ -1508,7 +1528,7 @@ void PSOutputDev::writeHeader(int firstPage, int lastPage,
     writePS("%%DocumentCustomColors: (atend)\n");
   }
   writePS("%%DocumentSuppliedResources: (atend)\n");
-  if ((level == psLevel1 || level == psLevel1Sep) && globalParams->getPSBinary()) {
+  if ((level == psLevel1 || level == psLevel1Sep) && useBinary) {
     writePS("%%DocumentData: Binary\n");
   }
 
@@ -1520,7 +1540,7 @@ void PSOutputDev::writeHeader(int firstPage, int lastPage,
                  i==0 ? "DocumentMedia:" : "+", size->name, size->w, size->h);
     }
     writePSFmt("%%BoundingBox: 0 0 {0:d} {1:d}\n", paperWidth, paperHeight);
-    writePSFmt("%%Pages: {0:d}\n", lastPage - firstPage + 1);
+    writePSFmt("%%Pages: {0:d}\n", static_cast<int>(pages.size()));
     writePS("%%EndComments\n");
     if (!paperMatch) {
       size = (PSOutPaperSize *)paperSizes->get(0);
@@ -1603,7 +1623,7 @@ void PSOutputDev::writeXpdfProcset() {
 }
 
 void PSOutputDev::writeDocSetup(PDFDoc *doc, Catalog *catalog,
-				int firstPage, int lastPage,
+				const std::vector<int> &pages,
                                 GBool duplexA) {
   Page *page;
   Dict *resDict;
@@ -1611,7 +1631,7 @@ void PSOutputDev::writeDocSetup(PDFDoc *doc, Catalog *catalog,
   Object *acroForm;
   Object obj1, obj2, obj3;
   GooString *s;
-  int pg, i;
+  int i;
 
   if (mode == psModeForm) {
     // swap the form and xpdf dicts
@@ -1619,7 +1639,8 @@ void PSOutputDev::writeDocSetup(PDFDoc *doc, Catalog *catalog,
   } else {
     writePS("xpdf begin\n");
   }
-  for (pg = firstPage; pg <= lastPage; ++pg) {
+  for (size_t pgi = 0; pgi < pages.size(); ++pgi) {
+    const int pg = pages[pgi];
     page = doc->getPage(pg);
     if (!page) {
       error(errSyntaxError, -1, "Failed writing resources for page {0:d}", pg);
@@ -1663,7 +1684,7 @@ void PSOutputDev::writeDocSetup(PDFDoc *doc, Catalog *catalog,
       }
     }
 #if OPI_SUPPORT
-    if (globalParams->getPSOPI()) {
+    if (generateOPI) {
       writePS("/opiMatrix matrix currentmatrix def\n");
     }
 #endif
@@ -1872,14 +1893,14 @@ void PSOutputDev::setupFont(GfxFont *font, Dict *parentResDict) {
 			     font->getID()->num, font->getID()->gen);
     setupType3Font(font, psName, parentResDict);
   } else {
-    fontLoc = font->locateFont(xref, gTrue);
+    fontLoc = font->locateFont(xref, this);
     if (fontLoc != NULL) {
       switch (fontLoc->locType) {
       case gfxFontLocEmbedded:
 	switch (fontLoc->fontType) {
 	case fontType1:
 	  // this assumes that the PS font name matches the PDF font name
-	  psName = font->getEmbeddedFontName()->copy();
+	  psName = font->getEmbeddedFontName() ? font->getEmbeddedFontName()->copy() : new GooString();
 	  setupEmbeddedType1Font(&fontLoc->embFontID, psName);
 	  break;
 	case fontType1C:
@@ -2804,7 +2825,7 @@ void PSOutputDev::setupImages(Dict *resDict) {
   Ref imgID;
   int i, j;
 
-  if (!(mode == psModeForm || inType3Char || preload)) {
+  if (!(mode == psModeForm || inType3Char || preloadImagesForms)) {
     return;
   }
 
@@ -2856,7 +2877,7 @@ void PSOutputDev::setupImages(Dict *resDict) {
 }
 
 void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
-  GBool useRLE, useCompressed, useASCIIHex;
+  GBool useRLE, useCompressed, doUseASCIIHex;
   GooString *s;
   int c;
   int size, line, col, i;
@@ -2868,9 +2889,9 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
   if (level < psLevel2) {
     useRLE = gFalse;
     useCompressed = gFalse;
-    useASCIIHex = gTrue;
+    doUseASCIIHex = gTrue;
   } else {
-    if (globalParams->getPSUncompressPreloadedImages()) {
+    if (uncompressPreloadedImages) {
       useRLE = gFalse;
       useCompressed = gFalse;
     } else {
@@ -2884,7 +2905,7 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
 	useCompressed = gFalse;
       }
     }
-    useASCIIHex = globalParams->getPSASCIIHex();
+    doUseASCIIHex = useASCIIHex;
   }
   if (useCompressed) {
     str = str->getUndecodedStream();
@@ -2892,7 +2913,7 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
   if (useRLE) {
     str = new RunLengthEncoder(str);
   }
-  if (useASCIIHex) {
+  if (doUseASCIIHex) {
     str = new ASCIIHexEncoder(str);
   } else {
     str = new ASCII85Encoder(str);
@@ -2905,23 +2926,23 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
     do {
       c = str->getChar();
     } while (c == '\n' || c == '\r');
-    if (c == (useASCIIHex ? '>' : '~') || c == EOF) {
+    if (c == (doUseASCIIHex ? '>' : '~') || c == EOF) {
       break;
     }
     if (c == 'z') {
       ++col;
     } else {
       ++col;
-      for (i = 1; i <= (useASCIIHex ? 1 : 4); ++i) {
+      for (i = 1; i <= (doUseASCIIHex ? 1 : 4); ++i) {
 	do {
 	  c = str->getChar();
 	} while (c == '\n' || c == '\r');
-	if (c == (useASCIIHex ? '>' : '~') || c == EOF) {
+	if (c == (doUseASCIIHex ? '>' : '~') || c == EOF) {
 	  break;
 	}
 	++col;
       }
-      if (c == (useASCIIHex ? '>' : '~') || c == EOF) {
+      if (c == (doUseASCIIHex ? '>' : '~') || c == EOF) {
 	break;
       }
     }
@@ -2929,7 +2950,7 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
       ++size;
       col = 0;
     }
-  } while (c != (useASCIIHex ? '>' : '~') && c != EOF);
+  } while (c != (doUseASCIIHex ? '>' : '~') && c != EOF);
   // add one entry for the final line of data; add another entry
   // because the RunLengthDecode filter may read past the end
   ++size;
@@ -2951,12 +2972,12 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
     writePSFmt("{0:d} array 1 index {1:d} 2 index put\n",
 	       innerSize, outer);
     line = col = 0;
-    writePS((char *)(useASCIIHex ? "dup 0 <" : "dup 0 <~"));
+    writePS((char *)(doUseASCIIHex ? "dup 0 <" : "dup 0 <~"));
     for (;;) {
       do {
 	c = str->getChar();
       } while (c == '\n' || c == '\r');
-      if (c == (useASCIIHex ? '>' : '~') || c == EOF) {
+      if (c == (doUseASCIIHex ? '>' : '~') || c == EOF) {
 	break;
       }
       if (c == 'z') {
@@ -2965,18 +2986,18 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
       } else {
 	writePSChar(c);
 	++col;
-	for (i = 1; i <= (useASCIIHex ? 1 : 4); ++i) {
+	for (i = 1; i <= (doUseASCIIHex ? 1 : 4); ++i) {
 	  do {
 	    c = str->getChar();
 	  } while (c == '\n' || c == '\r');
-	  if (c == (useASCIIHex ? '>' : '~') || c == EOF) {
+	  if (c == (doUseASCIIHex ? '>' : '~') || c == EOF) {
 	    break;
 	  }
 	  writePSChar(c);
 	  ++col;
 	}
       }
-      if (c == (useASCIIHex ? '>' : '~') || c == EOF) {
+      if (c == (doUseASCIIHex ? '>' : '~') || c == EOF) {
 	break;
       }
       // each line is: "dup nnnnn <~...data...~> put<eol>"
@@ -2984,15 +3005,15 @@ void PSOutputDev::setupImage(Ref id, Stream *str, GBool mask) {
       // chunks are 1 or 4 bytes each, so we have to stop at 232
       // but make it 225 just to be safe
       if (col > 225) {
-	writePS((char *)(useASCIIHex ? "> put\n" : "~> put\n"));
+	writePS((char *)(doUseASCIIHex ? "> put\n" : "~> put\n"));
 	++line;
 	if (line >= innerSize) break;
-	writePSFmt((char *)(useASCIIHex ? "dup {0:d} <" : "dup {0:d} <~"), line);
+	writePSFmt((char *)(doUseASCIIHex ? "dup {0:d} <" : "dup {0:d} <~"), line);
 	col = 0;
       }
     }
-    if (c == (useASCIIHex ? '>' : '~') || c == EOF) {
-      writePS((char *)(useASCIIHex ? "> put\n" : "~> put\n"));
+    if (c == (doUseASCIIHex ? '>' : '~') || c == EOF) {
+      writePS((char *)(doUseASCIIHex ? "> put\n" : "~> put\n"));
       if (useRLE) {
 	++line;
 	writePSFmt("{0:d} <> put\n", line);
@@ -3014,7 +3035,7 @@ void PSOutputDev::setupForms(Dict *resDict) {
   Object xObjDict, xObj, xObjRef, subtypeObj;
   int i;
 
-  if (!preload) {
+  if (!preloadImagesForms) {
     return;
   }
 
@@ -3134,8 +3155,6 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
   PreScanOutputDev *scan;
   GBool rasterize;
 #if HAVE_SPLASH
-  GBool mono;
-  double dpi;
   SplashOutputDev *splashOut;
   SplashColor paperColor;
   PDFRectangle box;
@@ -3153,7 +3172,6 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
 #endif
   char hexBuf[32*2 + 2];	// 32 values X 2 chars/value + line ending + null
   Guchar digit;
-  GBool useBinary;
   GBool isGray;
 
   if (forceRasterize) {
@@ -3172,12 +3190,8 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
   }
 
 #if HAVE_SPLASH
-  // get the rasterization parameters
-  dpi = globalParams->getPSRasterResolution();
-  mono = globalParams->getPSRasterMono();
-
   // start the PS page
-  page->makeBox(dpi, dpi, rotateA, useMediaBox, gFalse,
+  page->makeBox(rasterResolution, rasterResolution, rotateA, useMediaBox, gFalse,
 		sliceX, sliceY, sliceW, sliceH, &box, &crop);
   rotateA += page->getRotate();
   if (rotateA >= 360) {
@@ -3185,38 +3199,37 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
   } else if (rotateA < 0) {
     rotateA += 360;
   }
-  state = new GfxState(dpi, dpi, &box, rotateA, gFalse);
+  state = new GfxState(rasterResolution, rasterResolution, &box, rotateA, gFalse);
   startPage(page->getNum(), state, xref);
   delete state;
 
   // set up the SplashOutputDev
-  if (mono || level == psLevel1) {
+  if (rasterMono || level == psLevel1) {
     numComps = 1;
     paperColor[0] = 0xff;
     splashOut = new SplashOutputDev(splashModeMono8, 1, gFalse,
-				    paperColor, gFalse,
-				    globalParams->getAntialiasPrinting());
+				    paperColor, gFalse);
 #if SPLASH_CMYK
   } else if (level == psLevel1Sep || level == psLevel2Sep ||
 	     level == psLevel3Sep || globalParams->getOverprintPreview()) {
     numComps = 4;
     paperColor[0] = paperColor[1] = paperColor[2] = paperColor[3] = 0;
     splashOut = new SplashOutputDev(splashModeCMYK8, 1, gFalse,
-				    paperColor, gFalse,
-				    globalParams->getAntialiasPrinting());
+				    paperColor, gFalse);
 #endif
   } else {
     numComps = 3;
     paperColor[0] = paperColor[1] = paperColor[2] = 0xff;
     splashOut = new SplashOutputDev(splashModeRGB8, 1, gFalse,
-				    paperColor, gFalse,
-				    globalParams->getAntialiasPrinting());
+				    paperColor, gFalse);
   }
+  splashOut->setFontAntialias(rasterAntialias);
+  splashOut->setVectorAntialias(rasterAntialias);
   splashOut->startDoc(doc);
 
   // break the page into stripes
-  hDPI2 = xScale * dpi;
-  vDPI2 = yScale * dpi;
+  hDPI2 = xScale * rasterResolution;
+  vDPI2 = yScale * rasterResolution;
   if (sliceW < 0 || sliceH < 0) {
     if (useMediaBox) {
       box = *page->getMediaBox();
@@ -3260,7 +3273,6 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
 	       m0, m1, m2, m3, m4, m5);
     switch (level) {
     case psLevel1:
-      useBinary = globalParams->getPSBinary();
       writePSFmt("{0:d} {1:d} 8 [{2:d} 0 0 {3:d} 0 {4:d}] pdfIm1{5:s}\n",
 		 w, h, w, -h, h,
 		 useBinary ? "Bin" : "");
@@ -3299,19 +3311,22 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
       }
       break;
     case psLevel1Sep:
-      useBinary = globalParams->getPSBinary();
       p = bitmap->getDataPtr();
       // Check for an all gray image
-      isGray = gTrue;
-      for (y = 0; y < h; ++y) {
-	for (x = 0; x < w; ++x) {
-	  if (p[4*x] != p[4*x + 1] || p[4*x] != p[4*x + 2]) {
-	    isGray = gFalse;
-	    y = h;
-	    break;
+      if (getOptimizeColorSpace()) {
+        isGray = gTrue;
+        for (y = 0; y < h; ++y) {
+	  for (x = 0; x < w; ++x) {
+	    if (p[4*x] != p[4*x + 1] || p[4*x] != p[4*x + 2]) {
+	      isGray = gFalse;
+	      y = h;
+	      break;
+	    }
 	  }
+	  p += bitmap->getRowSize();
 	}
-	p += bitmap->getRowSize();
+      } else {
+	isGray = gFalse;
       }
       writePSFmt("{0:d} {1:d} 8 [{2:d} 0 0 {3:d} 0 {4:d}] pdfIm1{5:s}{6:s}\n",
 		 w, h, w, -h, h,
@@ -3458,7 +3473,9 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
       p = bitmap->getDataPtr() + (h - 1) * bitmap->getRowSize();
       str0 = new MemStream((char *)p, 0, w * h * numComps, &obj);
       // Check for a color image that uses only gray
-      if (numComps == 4) {
+      if (!getOptimizeColorSpace()) {
+	isGray = gFalse;
+      } else if (numComps == 4) {
         int compCyan;
         isGray = gTrue;
         while ((compCyan = str0->getChar()) != EOF) {
@@ -3512,10 +3529,9 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
 	writePS("  /Decode [0 1 0 1 0 1 0 1]\n");
       }
       writePS("  /DataSource currentfile\n");
-      useBinary = globalParams->getPSBinary();
       if (useBinary) {
 	/* nothing to do */;
-      } else if (globalParams->getPSASCIIHex()) {
+      } else if (useASCIIHex) {
 	writePS("    /ASCIIHexDecode filter\n");
       } else {
 	writePS("    /ASCII85Decode filter\n");
@@ -3524,7 +3540,7 @@ GBool PSOutputDev::checkPageSlice(Page *page, double /*hDPI*/, double /*vDPI*/,
       writePS(">>\n");
       if (useBinary) {
 	/* nothing to do */;
-      } else if (globalParams->getPSASCIIHex()) {
+      } else if (useASCIIHex) {
 	str = new ASCIIHexEncoder(str);
       } else {
 	str = new ASCII85Encoder(str);
@@ -5135,14 +5151,13 @@ void PSOutputDev::doImageL1(Object *ref, GfxImageColorMap *colorMap,
   int col, x, y, c, i;
   char hexBuf[32*2 + 2];	// 32 values X 2 chars/value + line ending + null
   Guchar digit, grayValue;
-  const GBool useBinary = globalParams->getPSBinary();
 
   // explicit masking
   if (maskStr && !(maskColors && colorMap)) {
     maskToClippingPath(maskStr, maskWidth, maskHeight, maskInvert);
   }
 
-  if ((inType3Char || preload) && !colorMap) {
+  if ((inType3Char || preloadImagesForms) && !colorMap) {
     if (inlineImg) {
       // create an array
       str = new FixedLengthEncoder(str, len);
@@ -5181,7 +5196,7 @@ void PSOutputDev::doImageL1(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // image/imagemask command
-  if ((inType3Char || preload) && !colorMap) {
+  if ((inType3Char || preloadImagesForms) && !colorMap) {
     writePSFmt("{0:d} {1:d} {2:s} [{3:d} 0 0 {4:d} 0 {5:d}] pdfImM1a\n",
 	       width, height, invert ? "true" : "false",
 	       width, -height, height);
@@ -5198,7 +5213,7 @@ void PSOutputDev::doImageL1(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // image data
-  if (!((inType3Char || preload) && !colorMap)) {
+  if (!((inType3Char || preloadImagesForms) && !colorMap)) {
 
     if (colorMap) {
 
@@ -5294,7 +5309,6 @@ void PSOutputDev::doImageL1Sep(Object *ref, GfxImageColorMap *colorMap,
   GBool checkProcessColor;
   char hexBuf[32*2 + 2];	// 32 values X 2 chars/value + line ending + null
   Guchar digit;
-  const GBool useBinary = globalParams->getPSBinary();
 
   // explicit masking
   if (maskStr && !(maskColors && colorMap)) {
@@ -5521,7 +5535,7 @@ void PSOutputDev::doImageL2(Object *ref, GfxImageColorMap *colorMap,
   GBool emitRect, addRect, extendRect;
   GooString *s;
   int n, numComps;
-  GBool useRLE, useASCII, useASCIIHex, useCompressed;
+  GBool useRLE, useASCII, useCompressed;
   GfxSeparationColorSpace *sepCS;
   GfxColor color;
   GfxCMYK cmyk;
@@ -5700,10 +5714,8 @@ void PSOutputDev::doImageL2(Object *ref, GfxImageColorMap *colorMap,
     writePS(" setcolorspace\n");
   }
 
-  useASCIIHex = globalParams->getPSASCIIHex();
-
   // set up the image data
-  if (mode == psModeForm || inType3Char || preload) {
+  if (mode == psModeForm || inType3Char || preloadImagesForms) {
     if (inlineImg) {
       // create an array
       str2 = new FixedLengthEncoder(str, len);
@@ -5813,7 +5825,7 @@ void PSOutputDev::doImageL2(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // data source
-  if (mode == psModeForm || inType3Char || preload) {
+  if (mode == psModeForm || inType3Char || preloadImagesForms) {
     if (inlineImg) {
       writePS("  /DataSource { pdfImStr }\n");
     } else {
@@ -5825,8 +5837,8 @@ void PSOutputDev::doImageL2(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // filters
-  if ((mode == psModeForm || inType3Char || preload) &&
-      globalParams->getPSUncompressPreloadedImages()) {
+  if ((mode == psModeForm || inType3Char || preloadImagesForms) &&
+      uncompressPreloadedImages) {
     s = NULL;
     useRLE = gFalse;
     useCompressed = gFalse;
@@ -5837,12 +5849,12 @@ void PSOutputDev::doImageL2(Object *ref, GfxImageColorMap *colorMap,
     if ((colorMap && colorMap->getColorSpace()->getMode() == csDeviceN) ||
 	inlineImg || !s) {
       useRLE = gTrue;
-      useASCII = !(mode == psModeForm || inType3Char || preload);
+      useASCII = !(mode == psModeForm || inType3Char || preloadImagesForms);
       useCompressed = gFalse;
     } else {
       useRLE = gFalse;
       useASCII = str->isBinary() &&
-	         !(mode == psModeForm || inType3Char || preload);
+	         !(mode == psModeForm || inType3Char || preloadImagesForms);
       useCompressed = gTrue;
     }
   }
@@ -5860,7 +5872,7 @@ void PSOutputDev::doImageL2(Object *ref, GfxImageColorMap *colorMap,
     delete s;
   }
 
-  if (mode == psModeForm || inType3Char || preload) {
+  if (mode == psModeForm || inType3Char || preloadImagesForms) {
 
     // end of image dictionary
     writePSFmt(">>\n{0:s}\n", colorMap ? "image" : "imagemask");
@@ -5980,7 +5992,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
   Stream *str2;
   GooString *s;
   int n, numComps;
-  GBool useRLE, useASCII, useASCIIHex, useCompressed;
+  GBool useRLE, useASCII, useCompressed;
   GBool maskUseRLE, maskUseASCII, maskUseCompressed;
   GooString *maskFilters;
   GfxSeparationColorSpace *sepCS;
@@ -5989,7 +6001,6 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
   int c;
   int col, i;
 
-  useASCIIHex = globalParams->getPSASCIIHex();
   useRLE = useASCII = useCompressed = gFalse; // make gcc happy
   maskUseRLE = maskUseASCII = maskUseCompressed = gFalse; // make gcc happy
   maskFilters = NULL; // make gcc happy
@@ -5998,8 +6009,8 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
   if (maskStr) {
 
     // mask data source
-    if ((mode == psModeForm || inType3Char || preload) &&
-      globalParams->getPSUncompressPreloadedImages()) {
+    if ((mode == psModeForm || inType3Char || preloadImagesForms) &&
+      uncompressPreloadedImages) {
       s = NULL;
       maskUseRLE = gFalse;
       maskUseCompressed = gFalse;
@@ -6008,12 +6019,12 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
       s = maskStr->getPSFilter(3, "  ");
       if (!s) {
 	maskUseRLE = gTrue;
-	maskUseASCII = !(mode == psModeForm || inType3Char || preload);
+	maskUseASCII = !(mode == psModeForm || inType3Char || preloadImagesForms);
 	maskUseCompressed = gFalse;
       } else {
 	maskUseRLE = gFalse;
 	maskUseASCII = maskStr->isBinary() &&
-	               !(mode == psModeForm || inType3Char || preload);
+	               !(mode == psModeForm || inType3Char || preloadImagesForms);
 	maskUseCompressed = gTrue;
       }
     }
@@ -6031,7 +6042,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
     if (s) {
       delete s;
     }
-    if (mode == psModeForm || inType3Char || preload) {
+    if (mode == psModeForm || inType3Char || preloadImagesForms) {
       writePSFmt("MaskData_{0:d}_{1:d} pdfMaskInit\n",
 		 ref->getRefNum(), ref->getRefGen());
     } else {
@@ -6077,7 +6088,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // set up the image data
-  if (mode == psModeForm || inType3Char || preload) {
+  if (mode == psModeForm || inType3Char || preloadImagesForms) {
     if (inlineImg) {
       // create an array
       str2 = new FixedLengthEncoder(str, len);
@@ -6195,7 +6206,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // data source
-  if (mode == psModeForm || inType3Char || preload) {
+  if (mode == psModeForm || inType3Char || preloadImagesForms) {
     if (inlineImg) {
   writePS("  /DataSource { pdfImStr }\n");
     } else {
@@ -6207,8 +6218,8 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // filters
-  if ((mode == psModeForm || inType3Char || preload) &&
-      globalParams->getPSUncompressPreloadedImages()) {
+  if ((mode == psModeForm || inType3Char || preloadImagesForms) &&
+      uncompressPreloadedImages) {
     s = NULL;
     useRLE = gFalse;
     useCompressed = gFalse;
@@ -6219,12 +6230,12 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
     if ((colorMap && colorMap->getColorSpace()->getMode() == csDeviceN) ||
 	inlineImg || !s) {
       useRLE = gTrue;
-      useASCII = !(mode == psModeForm || inType3Char || preload);
+      useASCII = !(mode == psModeForm || inType3Char || preloadImagesForms);
       useCompressed = gFalse;
     } else {
       useRLE = gFalse;
       useASCII = str->isBinary() &&
-                 !(mode == psModeForm || inType3Char || preload);
+                 !(mode == psModeForm || inType3Char || preloadImagesForms);
       useCompressed = gTrue;
     }
   }
@@ -6259,7 +6270,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
 	       maskInvert ? 1 : 0, maskInvert ? 0 : 1);
 
     // mask data source
-    if (mode == psModeForm || inType3Char || preload) {
+    if (mode == psModeForm || inType3Char || preloadImagesForms) {
       writePS("  /DataSource {pdfMaskSrc}\n");
       writePS(maskFilters->getCString());
     } else {
@@ -6271,7 +6282,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
     writePS(">>\n");
   }
 
-  if (mode == psModeForm || inType3Char || preload) {
+  if (mode == psModeForm || inType3Char || preloadImagesForms) {
 
     // image command
     writePSFmt("{0:s}\n", colorMap ? "image" : "imagemask");
@@ -6294,7 +6305,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
   }
 
   // get rid of the array and index
-  if (mode == psModeForm || inType3Char || preload) {
+  if (mode == psModeForm || inType3Char || preloadImagesForms) {
     if (!inlineImg) writePS("pop ");
     writePS("pop pop\n");
 
@@ -6339,7 +6350,7 @@ void PSOutputDev::doImageL3(Object *ref, GfxImageColorMap *colorMap,
 
   // close the mask stream
   if (maskStr) {
-    if (!(mode == psModeForm || inType3Char || preload)) {
+    if (!(mode == psModeForm || inType3Char || preloadImagesForms)) {
       writePS("pdfMaskEnd\n");
     }
   }
@@ -6621,7 +6632,7 @@ void PSOutputDev::dumpColorSpaceL2(GfxColorSpace *colorSpace,
 void PSOutputDev::opiBegin(GfxState *state, Dict *opiDict) {
   Object dict;
 
-  if (globalParams->getPSOPI()) {
+  if (generateOPI) {
     opiDict->lookup("2.0", &dict);
     if (dict.isDict()) {
       opiBegin20(state, dict.getDict());
@@ -6994,7 +7005,7 @@ void PSOutputDev::opiTransform(GfxState *state, double x0, double y0,
 void PSOutputDev::opiEnd(GfxState *state, Dict *opiDict) {
   Object dict;
 
-  if (globalParams->getPSOPI()) {
+  if (generateOPI) {
     opiDict->lookup("2.0", &dict);
     if (dict.isDict()) {
       writePS("%%EndIncludedImage\n");
