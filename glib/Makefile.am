@@ -32,11 +32,11 @@ poppler_glib_public_headers =			\
 	poppler-attachment.h			\
 	poppler-form-field.h			\
 	poppler-annot.h				\
+	poppler-imports.h				\
 	poppler-layer.h				\
 	poppler-media.h				\
 	poppler-movie.h				\
 	poppler-structure-element.h		\
-	poppler-imports.h \
 	poppler-object.h \
 	poppler.h
 

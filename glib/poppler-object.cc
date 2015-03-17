@@ -4,12 +4,22 @@
 
 
 #define DEFINE_POPPLER_OBJECT(...)
-#define CONSTRUCTOR_XREF() \
-    CAT(Poppler,Klass) * CAT(CAT(poppler_, type), _new)(gpointer xref) { \
-        return (CAT(Poppler,Klass)*) new Klass( (XRef*) xref ); \
-    } \
-    void CAT(CAT(poppler_, type), _free) ( CAT(Poppler,Klass) *arg0) { \
-        delete ((Klass*)arg0); \
+#define CONSTRUCTOR_MONAD(method) \
+    CAT(Poppler,Klass) * CAT(CAT(CAT(poppler_, klass), _, method))() { \
+        return (CAT(Poppler,Klass)*) new Klass(); \
+    }
+#define CONSTRUCTOR_ONEP(method, type1) \
+    CAT(Poppler,Klass) * CAT(CAT(CAT(poppler_, klass), _, method))(type1 arg1) { \
+        return (CAT(Poppler,Klass)*) new Klass(arg1); \
+    }
+#define CONSTRUCTOR_ONEF(method, Type1, type1) \
+    CAT(Poppler,Klass) * CAT(CAT(CAT(poppler_, klass), _), method)(type1 arg1) { \
+        return (CAT(Poppler,Klass)*) new Klass((Type1)arg1); \
+    }
+#define CONSTRUCTOR_XREF() CONSTRUCTOR_ONEF(new, XRef*, gpointer)
+#define DESTRUCTOR(method) \
+    void  CAT(CAT(CAT(poppler_, klass), _), method) (CAT(Poppler,Klass) *arg0) { \
+        delete ( (Klass*) arg0 ); \
     }
 #define METHOD_MONAD( return_type, Method, method) \
     return_type  CAT(CAT(CAT(poppler_, klass), _), method) (CAT(Poppler,Klass) *arg0) { \
@@ -43,7 +53,10 @@
 
 #include "poppler-imports.h"
 
-#undef CONSTRUCTOR_XREF
+#undef CONSTRUCTOR_MONAD
+#undef CONSTRUCTOR_ONEP
+#undef CONSTRUCTOR_ONEF
+#undef DESTRUCTOR
 #undef DEFINE_POPPLER_OBJECT
 #undef METHOD_MONAD
 #undef METHOD_ONEF

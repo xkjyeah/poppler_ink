@@ -73,10 +73,6 @@
 #include "Link.h"
 #include <string.h>
 
-#if HAVE_CAIRO
-#include <cairo-script.h>
-#endif
-
 #if MULTITHREADED
 #  define annotLocker()   MutexLocker locker(&mutex)
 #  define annotCondLocker(X)  MutexLocker locker(&mutex, (X))
@@ -1548,6 +1544,19 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
     // that describes the appearance of this annotation.
     createForm(dbbox, gFalse, NULL, &this->appearance); // bbox comes from the BBox
 
+    // TODO: this->appearance is the stream object
+    // The stream object has a dictionary, into which you can put your graphics states and what not
+    // instead of NULL, create a dictionary:
+    // { ExtGState: {
+    //      GS1: {
+    //          <color, width, blend mode etc.>
+    //          BM: Multiply ((name or array
+    //      },
+    //      GS2: {
+    //
+    //      }
+    // }}
+
     if (!appearStreams) {
         // initialize appearStreams to
         Object initAP;
@@ -1555,17 +1564,16 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
         Dict *initAPDict = new Dict(xref);
 
         nullObject.initNull(); // this will be overwritten anyway
-        initAPDict->set("N", &nullObject);
+        initAPDict->decRef();
+        initAPDict->add(copyString("N"), &nullObject);
         initAP.initDict(initAPDict);
  
         appearStreams = new AnnotAppearance(doc, &initAP);
-
-        delete initAPDict;
     }
     appearStreams->setAppearanceStream(type, state, this->appearance);
 }
 
-#ifdef HAVE_CAIRO
+#if 0
 static cairo_status_t write_to_string(void *drawing_void, const unsigned char *data, unsigned int length)
 {
     GooString *drawing = (GooString*)drawing_void;
@@ -1609,8 +1617,6 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
     
     this->setAppearance(type, state, drawing.getCString(), bbox);
 }
-#else
-#warn No cairo-based setAppearance
 #endif
 
 void Annot::setModified(GooString *new_modified) {

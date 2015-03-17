@@ -1,3 +1,5 @@
+#ifdef __POPPLER_OBJECT_H__
+
 DEFINE_POPPLER_OBJECT(XRef)
 DEFINE_POPPLER_OBJECT(Object)
 //DEFINE_POPPLER_OBJECT(Bool)
@@ -44,20 +46,24 @@ METHOD_ONEP( void, getKey, get_key, int)
 METHOD_TWOPF( PopplerObject *, getVal, get_val, int, PopplerObject *, Object *)
 METHOD_TWOPF( PopplerObject *, getValNF, get_val_nf, int, PopplerObject *, Object *)
 
-
-// Array objects
+DESTRUCTOR(free)
 #undef Klass
 #undef klass
+
+// Array objects
 #define Klass Array
 #define klass array
 
-CONSTRUCTOR_XREF()
+CONSTRUCTOR_ONEF(new, XRef*, gpointer)
 METHOD_MONAD(int, incRef, inc_ref)
 METHOD_MONAD(int, decRef, dec_ref)
 METHOD_MONAD(int, getLength, get_length)
 
 METHOD_THREEPFP(PopplerObject*, get, get, int, PopplerObject*, Object*, int)
 METHOD_TWOPF(PopplerObject*, getNF, getNF, int, PopplerObject*, Object*)
+
+#undef Klass
+#undef klass
 
 
 //#define POPPLER_TYPE_DOCUMENT             (poppler_document_get_type ())
@@ -66,9 +72,6 @@ METHOD_TWOPF(PopplerObject*, getNF, getNF, int, PopplerObject*, Object*)
 
 
 // AnnotBorder objects
-#undef Klass
-#undef klass
-
 DEFINE_POPPLER_OBJECT(AnnotBorder)
 
 // AnnotBorder-related enums
@@ -106,3 +109,12 @@ METHOD_MONAD(PopplerAnnotBorderStyle, getStyle, get_style)
 #undef Klass
 #undef klass
 
+#define Klass Object
+#define klass object
+METHOD_ONEF(PopplerObject*, initDict, init_dict, PopplerDict*, Dict*)
+METHOD_ONEF(PopplerObject*, initArray, init_array_xref, PopplerXRef*, XRef*)
+METHOD_MONAD(void, free, free)
+#undef Klass
+#undef klass
+
+#endif

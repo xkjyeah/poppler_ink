@@ -10,9 +10,17 @@ G_BEGIN_DECLS
 #define DEFINE_POPPLER_OBJECT(Name) \
     typedef struct _Poppler ## Name Poppler ## Name ;
 
-#define CONSTRUCTOR_XREF() \
-    CAT(Poppler,Klass) * CAT(CAT(poppler_, type), _new)(gpointer xref); \
-    void CAT(CAT(poppler_, type), _free) ( CAT(Poppler,Klass) *arg0);
+#define CONSTRUCTOR_MONAD(method) \
+    CAT(Poppler,Klass)*  CAT(CAT(CAT(poppler_, klass), _), method) ();
+
+#define CONSTRUCTOR_ONEP(method, type1) \
+    CAT(Poppler,Klass)*  CAT(CAT(CAT(poppler_, klass), _), method) (type1 arg1);
+
+#define CONSTRUCTOR_ONEF(method, Type1, type1) \
+    CAT(Poppler,Klass)*  CAT(CAT(CAT(poppler_, klass), _), method) (type1 arg1);
+
+#define DESTRUCTOR(method) \
+    void  CAT(CAT(CAT(poppler_, klass), _), method) (CAT(Poppler,Klass) *arg0);
 
 #define METHOD_MONAD( return_type, Method, method) \
     return_type  CAT(CAT(CAT(poppler_, klass), _), method) (CAT(Poppler,Klass) *arg0);
@@ -39,7 +47,10 @@ G_BEGIN_DECLS
 
 #include "poppler-imports.h"
 
-#undef CONSTRUCTOR_XREF
+#undef CONSTRUCTOR_MONAD
+#undef CONSTRUCTOR_ONEP
+#undef CONSTRUCTOR_ONEF
+#undef DESTRUCTOR
 #undef DEFINE_POPPLER_OBJECT
 #undef METHOD_MONAD
 #undef METHOD_ONEF
