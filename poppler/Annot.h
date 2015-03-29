@@ -615,7 +615,12 @@ public:
   Guint getFlags() const { return flags; }
   AnnotAppearance *getAppearStreams() const { return appearStreams; }
   GooString *getAppearState() const { return appearState; }
-  void setAppearance(AnnotAppearance::AnnotAppearanceType type, const char *state, const char *drawing, PDFRectangle *bbox);
+  void updateAppearanceStreamReference ();
+  void setAppearance(AnnotAppearance::AnnotAppearanceType type,
+                     const char *state,
+                     const char *drawing,
+                     Object *resources,
+                     PDFRectangle *bbox);
   AnnotBorder *getBorder() const { return border; }
   AnnotColor *getColor() const { return color; }
   int getTreeKey() const { return treeKey; }
@@ -631,7 +636,6 @@ private:
 
   void initialize (PDFDoc *docA, Dict *dict);
   void setPage (int new_page, GBool updateP); // Called by Page::addAnnot and Annots ctor
-
 
 protected:
   virtual ~Annot();
@@ -675,6 +679,7 @@ protected:
   AnnotAppearance *appearStreams;   // AP
   Object appearance;     // a reference to the Form XObject stream
                          //   for the normal appearance
+  Ref updatedAppearanceStream; // {-1,-1} if updateAppearanceStream has never been called
   AnnotAppearanceBBox *appearBBox;  // BBox of generated appearance
   GooString *appearState;           // AS
   int treeKey;                      // Struct Parent;
@@ -1355,7 +1360,6 @@ private:
   // AnnotBorderBS border;                // BS
   Dict *parent;                           // Parent
   GBool addDingbatsResource;
-  Ref updatedAppearanceStream; // {-1,-1} if updateAppearanceStream has never been called
 };
 
 //------------------------------------------------------------------------

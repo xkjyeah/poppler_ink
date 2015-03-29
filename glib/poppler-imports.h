@@ -33,8 +33,7 @@ METHOD_MONAD( int, decRef, dec_ref)
 METHOD_MONAD( int, getLength, get_length)
 METHOD_MONAD( PopplerXRef*, getXRef, get_x_ref)
 
-METHOD_TWOPF( void, add, add, char*, PopplerObject*, Object*)
-METHOD_TWOPF( void, set, set, char*, PopplerObject*, Object*)
+METHOD_TWOPF( void, set, set, const char*, PopplerObject*, Object*)
 
 METHOD_ONEP( void, remove, remove, const char*)
 METHOD_ONEP( gboolean, is, is, const char*)
@@ -73,6 +72,7 @@ METHOD_TWOPF(PopplerObject*, getNF, getNF, int, PopplerObject*, Object*)
 
 // AnnotBorder objects
 DEFINE_POPPLER_OBJECT(AnnotBorder)
+DEFINE_POPPLER_OBJECT(AnnotBorderBS)
 
 // AnnotBorder-related enums
 #ifdef WANT_ENUMS
@@ -98,6 +98,12 @@ DEFINE_POPPLER_OBJECT(AnnotBorder)
     #undef ENUM
 #endif
 
+#define Klass AnnotBorderBS
+#define klass annot_border_bs
+CONSTRUCTOR_MONAD(new)
+#undef Klass
+#undef klass 
+
 #define Klass AnnotBorder
 #define klass annot_border
 METHOD_ONEP(void, setWidth, set_width, double)
@@ -111,8 +117,12 @@ METHOD_MONAD(PopplerAnnotBorderStyle, getStyle, get_style)
 
 #define Klass Object
 #define klass object
+CONSTRUCTOR_MONAD(new)
 METHOD_ONEF(PopplerObject*, initDict, init_dict, PopplerDict*, Dict*)
+METHOD_ONEP(PopplerObject*, initName, init_name, const char *)
+METHOD_ONEF(PopplerObject*, initDict, init_dict_xref, PopplerXRef*, XRef*)
 METHOD_ONEF(PopplerObject*, initArray, init_array_xref, PopplerXRef*, XRef*)
+METHOD_TWOPF(void, dictSet, dict_set, const char *, PopplerObject*, Object*)
 METHOD_MONAD(void, free, free)
 #undef Klass
 #undef klass

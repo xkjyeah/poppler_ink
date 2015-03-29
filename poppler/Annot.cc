@@ -1413,6 +1413,8 @@ void Annot::initialize(PDFDoc *docA, Dict *dict) {
 
   dict->lookupNF("OC", &oc);
 
+  updatedAppearanceStream.num = updatedAppearanceStream.gen = -1;
+
 #if MULTITHREADED
   gInitMutex(&mutex);
 #endif
@@ -1525,6 +1527,7 @@ void Annot::setName(GooString *new_name) {
 void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
                             const char *state,
                             const char *drawing,
+                            Object *resources,                            
                             PDFRectangle *bbox) {
     assert(bbox);
 
@@ -1542,9 +1545,8 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
     appearBuf = new GooString(drawing);
     // build, using dbbox and appearBuf, the form object
     // that describes the appearance of this annotation.
-    createForm(dbbox, gFalse, NULL, &this->appearance); // bbox comes from the BBox
+    createForm(dbbox, gTrue, resources, &this->appearance); // bbox comes from the BBox
 
-    // TODO: this->appearance is the stream object
     // The stream object has a dictionary, into which you can put your graphics states and what not
     // instead of NULL, create a dictionary:
     // { ExtGState: {
@@ -1557,67 +1559,8 @@ void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
     //      }
     // }}
 
-    if (!appearStreams) {
-        // initialize appearStreams to
-        Object initAP;
-        Object nullObject;
-        Dict *initAPDict = new Dict(xref);
-
-        nullObject.initNull(); // this will be overwritten anyway
-        initAPDict->decRef();
-        initAPDict->add(copyString("N"), &nullObject);
-        initAP.initDict(initAPDict);
- 
-        appearStreams = new AnnotAppearance(doc, &initAP);
-    }
-    appearStreams->setAppearanceStream(type, state, this->appearance);
+    updateAppearanceStreamReference();
 }
-
-#if 0
-static cairo_status_t write_to_string(void *drawing_void, const unsigned char *data, unsigned int length)
-{
-    GooString *drawing = (GooString*)drawing_void;
-    drawing->append((const char *)data, length);
-    return CAIRO_STATUS_SUCCESS;
-}
-/* 
- * Sets the appearance stream and BBox for a particular state.
- * The appearance stream is defined using a Cairo surface,
- * from which we can extract the drawing commands.
- *
- * If the appearance state is NULL, then it becomes the only appearance stream.
- *
- * FIXME: what is the opacity for? where should we set it?
- * FIXME: support matrices
- * */
-void Annot::setAppearance(AnnotAppearance::AnnotAppearanceType type,
-                            const char *state,
-                            cairo_surface_t *surf,
-                            PDFRectangle *bbox) {
-    GooString drawing;
-    cairo_device_t *script_dev = 
-        cairo_script_create_for_stream(write_to_string, &drawing);
-    cairo_surface_t *surface_dev =
-        cairo_script_surface_create(script_dev, CAIRO_CONTENT_COLOR_ALPHA,
-                                    bbox->x2 - bbox->x1, bbox->y2 - bbox->y1);
-    cairo_t *cr = cairo_create(surface_dev);
-
-    cairo_set_source_surface(cr, surf, 0, 0);
-    cairo_paint(cr);
-    cairo_destroy(cr);
-
-    cairo_surface_destroy(surface_dev);
-    
-    // Save the surface. We can then return it to the
-    // program, which the program can use to draw the annotation
-    
-    // TODO: destroy past references
-    //
-    cairo_surface_reference(surf);
-    
-    this->setAppearance(type, state, drawing.getCString(), bbox);
-}
-#endif
 
 void Annot::setModified(GooString *new_modified) {
   annotLocker();
@@ -4130,8 +4073,6 @@ void AnnotWidget::initialize(PDFDoc *docA, Dict *dict) {
     border = new AnnotBorderBS(obj1.getDict());
   }
   obj1.free();
-
-  updatedAppearanceStream.num = updatedAppearanceStream.gen = -1;
 }
 
 LinkAction* AnnotWidget::getAdditionalAction(AdditionalActionsType type)
@@ -5249,6 +5190,11 @@ void AnnotWidget::updateAppearanceStream()
   // Create the new appearance
   generateFieldAppearance();
 
+  updateAppearanceStreamReference();
+}
+
+void Annot::updateAppearanceStreamReference()
+{
   // Fetch the appearance stream we've just created
   Object obj1;
   appearance.fetch(xref, &obj1);
@@ -5264,7 +5210,7 @@ void AnnotWidget::updateAppearanceStream()
     // Write the AP dictionary
     Object obj2;
     obj1.initDict(xref);
-    obj1.dictAdd(copyString("N"), obj2.initRef(updatedAppearanceStream.num, updatedAppearanceStream.gen));
+    obj1.dictSet("N", obj2.initRef(updatedAppearanceStream.num, updatedAppearanceStream.gen));
     update("AP", &obj1);
 
     // Update our internal pointers to the appearance dictionary

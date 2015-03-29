@@ -200,18 +200,14 @@ void                          poppler_annot_get_rectangle                      (
 void                          poppler_annot_set_rectangle                      (PopplerAnnot     *poppler_annot,
 										PopplerRectangle *poppler_rect);
 PopplerAnnotBorder*           poppler_annot_get_border                         (PopplerAnnot *poppler_annot);                                        
+void                          poppler_annot_set_border                         (PopplerAnnot *poppler_annot, PopplerAnnotBorder *border);
 void                          poppler_annot_set_appearance                     (PopplerAnnot *poppler_annot,
                                                                                 PopplerAnnotAppearanceType type,
                                                                                 const char *state,
                                                                                 const char *drawing,
+                                                                                PopplerObject *resources,
                                                                                 PopplerRectangle *poppler_rect);
-#if POPPLER_HAS_CAIRO
-void                          poppler_annot_set_appearance_cairo               (PopplerAnnot *poppler_annot,
-                                                                                PopplerAnnotAppearanceType type,
-                                                                                const char *state,
-                                                                                cairo_surface_t *cr,
-                                                                                PopplerRectangle *poppler_rect);
-#endif                                                                                
+PopplerXRef*                  poppler_annot_get_xref                           (PopplerAnnot *poppler_annot);
 
 /* PopplerAnnotMarkup */
 GType                         poppler_annot_markup_get_type                    (void) G_GNUC_CONST;
@@ -338,6 +334,14 @@ gboolean                    poppler_annot_path_get              (PopplerAnnotPat
                                                                 int index, 
                                                                 double *x, 
                                                                 double *y);
+
+GType                         poppler_annot_paths_get_type              (void) G_GNUC_CONST;
+PopplerAnnotPaths           *poppler_annot_paths_copy           (PopplerAnnotPaths *paths);
+void                         poppler_annot_paths_free           (PopplerAnnotPaths *paths);
+
+GType                         poppler_annot_path_get_type              (void) G_GNUC_CONST;
+PopplerAnnotPath            *poppler_annot_path_copy           (PopplerAnnotPath *path);
+void                         poppler_annot_path_free           (PopplerAnnotPath *path);
 //PopplerAnnotPaths *poppler_annot_paths_new_from_annot_paths( AnnotPath **paths, int n );
 
 

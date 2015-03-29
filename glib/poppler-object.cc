@@ -5,11 +5,11 @@
 
 #define DEFINE_POPPLER_OBJECT(...)
 #define CONSTRUCTOR_MONAD(method) \
-    CAT(Poppler,Klass) * CAT(CAT(CAT(poppler_, klass), _, method))() { \
+    CAT(Poppler,Klass) * CAT(CAT(CAT(poppler_, klass), _), method)() { \
         return (CAT(Poppler,Klass)*) new Klass(); \
     }
 #define CONSTRUCTOR_ONEP(method, type1) \
-    CAT(Poppler,Klass) * CAT(CAT(CAT(poppler_, klass), _, method))(type1 arg1) { \
+    CAT(Poppler,Klass) * CAT(CAT(CAT(poppler_, klass), _), method)(type1 arg1) { \
         return (CAT(Poppler,Klass)*) new Klass(arg1); \
     }
 #define CONSTRUCTOR_ONEF(method, Type1, type1) \

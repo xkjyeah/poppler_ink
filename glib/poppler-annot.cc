@@ -983,11 +983,19 @@ poppler_annot_get_border (PopplerAnnot *poppler_annot)
   return (PopplerAnnotBorder*)poppler_annot->annot->getBorder();
 }
 
+void
+poppler_annot_set_border (PopplerAnnot *poppler_annot, PopplerAnnotBorder *border)
+{
+  g_return_if_fail (POPPLER_IS_ANNOT (poppler_annot));
+
+  poppler_annot->annot->setBorder((AnnotBorder*)border);
+}
 void                          
 poppler_annot_set_appearance (PopplerAnnot *annot,
                                 PopplerAnnotAppearanceType type,
                                 const char *state,
                                 const char *drawing,
+                                PopplerObject *resources,
                                 PopplerRectangle *poppler_rect)
 {
    PDFRectangle pdf_rect;
@@ -1003,20 +1011,14 @@ poppler_annot_set_appearance (PopplerAnnot *annot,
         (type == POPPLER_ANNOT_APPEARANCE_DOWN) ? AnnotAppearance::appearDown : 
                         AnnotAppearance::appearNormal;
 
-   annot->annot->setAppearance(atype, state, drawing, &pdf_rect);
+   annot->annot->setAppearance(atype, state, drawing, (Object*)resources, &pdf_rect);
 }
 
-#if POPPLER_HAS_CAIRO
-void
-poppler_annot_set_appearance_cairo (PopplerAnnot *annot,
-                                    PopplerAnnotAppearanceType type,
-                                    const char *state,
-                                    cairo_surface_t *cr,
-                                    PopplerRectangle *poppler_rect)
+PopplerXRef*
+poppler_annot_get_xref (PopplerAnnot *poppler_annot)
 {
-    g_assert_not_reached();
+    return (PopplerXRef*)poppler_annot->annot->getXRef();
 }
-#endif
 
 static PopplerColor *
 create_poppler_color_from_annot_color (AnnotColor *color)
@@ -2104,6 +2106,47 @@ poppler_annot_square_set_interior_color (PopplerAnnotSquare *poppler_annot,
 
 
 /* paths object ... */
+
+POPPLER_DEFINE_BOXED_TYPE (PopplerAnnotPaths, poppler_annot_paths,
+			   poppler_annot_paths_copy,
+			   poppler_annot_paths_free)
+
+POPPLER_DEFINE_BOXED_TYPE (PopplerAnnotPath, poppler_annot_path,
+			   poppler_annot_path_copy,
+			   poppler_annot_path_free)
+
+PopplerAnnotPaths *                        
+poppler_annot_paths_copy(PopplerAnnotPaths *paths)
+{
+    // FIXME -- copy not supported on base class
+    assert(FALSE);
+}
+
+PopplerAnnotPath *                        
+poppler_annot_path_copy(PopplerAnnotPath *path)
+{
+    // FIXME: copy not supported on underlying class
+    assert(FALSE);
+}
+
+void                         
+poppler_annot_path_free(PopplerAnnotPath *path)
+{
+    delete ((AnnotPath*)path);
+}
+
+
+void                         
+poppler_annot_paths_free(PopplerAnnotPaths *paths)
+{
+//    for (int i=0; i<paths->paths->num_paths; i++) {
+//        if (paths->paths[i])
+//            poppler_annot_path_free(paths->paths[i]);
+//    }
+    g_free(paths->paths);
+    g_free(paths);
+}
+
 /* Creates a reference to the original AnnotPath**. */
 PopplerAnnotPaths *
 poppler_annot_paths_new (int n)
@@ -2233,5 +2276,7 @@ poppler_annot_path_get (PopplerAnnotPath * annot_paths, int index, double *x, do
 
     return TRUE;
 }
+
+
 
 
