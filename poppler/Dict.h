@@ -45,7 +45,7 @@ struct DictEntry {
   Object val;
 };
 
-class Dict {
+class Dict : Object {
 public:
 
   // Constructor.

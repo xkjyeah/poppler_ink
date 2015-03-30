@@ -122,41 +122,6 @@ Object *Object::fetch(XRef *xref, Object *obj, int recursion) {
          xref->fetch(ref.num, ref.gen, obj, recursion) : copy(obj);
 }
 
-void Object::free() {
-  switch (type) {
-  case objString:
-    delete string;
-    break;
-  case objName:
-    gfree(name);
-    break;
-  case objArray:
-    if (!array->decRef()) {
-      delete array;
-    }
-    break;
-  case objDict:
-    if (!dict->decRef()) {
-      delete dict;
-    }
-    break;
-  case objStream:
-    if (!stream->decRef()) {
-      delete stream;
-    }
-    break;
-  case objCmd:
-    gfree(cmd);
-    break;
-  default:
-    break;
-  }
-#ifdef DEBUG_MEM
-  --numAlloc[type];
-#endif
-  type = objNone;
-}
-
 const char *Object::getTypeName() {
   return objTypeNames[type];
 }
@@ -250,3 +215,7 @@ void Object::memCheck(FILE *f) {
   (void)f;
 #endif
 }
+
+ArrayContents::ArrayContents(XRef *xref) : array(make_shared(new Array(xref))) {}
+DictContents::DictContents(XRef *xref) : dict(make_shared(new Dict(xref))) {}
+DictContents::DictContents(std::shared_ptr<Dict> dict) : dict(dict) {}

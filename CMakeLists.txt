@@ -178,7 +178,7 @@ if(ENABLE_LIBCURL)
   set(POPPLER_HAS_CURL_SUPPORT ON)
 endif(ENABLE_LIBCURL)
 
-add_definitions(-DHAVE_CONFIG_H=1)
+add_definitions(-DHAVE_CONFIG_H=1 -std=c++11)
 if(MINGW)
   # Use mingw's ansi stdio extensions
   add_definitions(-D__USE_MINGW_ANSI_STDIO=1)

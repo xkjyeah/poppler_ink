@@ -11,6 +11,8 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([config.h poppler/poppler-config.h])
 AC_C_BIGENDIAN
 
+CXXFLAGS="--std=c++11"
+
 dnl ##### Initialize libtool.
 AC_LIBTOOL_WIN32_DLL
 define([AC_LIBTOOL_LANG_F77_CONFIG], [:])
