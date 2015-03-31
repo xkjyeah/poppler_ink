@@ -211,7 +211,7 @@ public:
   virtual Stream *getUndecodedStream() = 0;
 
   // Get the dictionary associated with this stream.
-  virtual Dict *getDict() = 0;
+  virtual std::shared_ptr<Dict> getDict() = 0;
 
   // Is this an encoding filter?
   virtual GBool isEncoder() { return gFalse; }
@@ -314,7 +314,7 @@ public:
   virtual GBool isBinary(GBool last = gTrue) { return last; }
   virtual BaseStream *getBaseStream() { return this; }
   virtual Stream *getUndecodedStream() { return this; }
-  virtual Dict *getDict() { return dict.getDict(); }
+  virtual std::shared_ptr<Dict> getDict() { return dict.getDict(); }
   virtual GooString *getFileName() { return NULL; }
   virtual Goffset getLength() { return length; }
 
@@ -344,7 +344,7 @@ public:
   virtual void setPos(Goffset pos, int dir = 0);
   virtual BaseStream *getBaseStream() { return str->getBaseStream(); }
   virtual Stream *getUndecodedStream() { return str->getUndecodedStream(); }
-  virtual Dict *getDict() { return str->getDict(); }
+  virtual std::shared_ptr<Dict> getDict() { return str->getDict(); }
   virtual Stream *getNextStream() { return str; }
 
   virtual int getUnfilteredChar () { return str->getUnfilteredChar(); }

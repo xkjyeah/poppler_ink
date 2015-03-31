@@ -62,6 +62,105 @@ int Object::numAlloc[numObjTypes] =
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 #endif
 
+Object::Object(const Object &other)
+: type(objNone)
+{
+	*this = other;
+}
+Object::Object(const Object &&other)
+: type(objNone)
+{
+	*this = std::move(other);
+}
+Object::Object &operator=(const Object &other)
+{
+	zeroUnion();
+	initUnion(other.type);
+	switch (other.type) {
+		case objBool:			// boolean
+			booln = booln;
+		case objInt:			// integer
+			intg = intg;
+		case objReal:			// real
+			real = real;
+		case objInt64:			// integer with at least 64-bits
+			int64g = int64g;
+		case objRef:			// indirect reference
+			ref = ref;
+			break;
+		// non-POD types:
+		case objString:			// string
+			string = other.string;
+			break;
+		case objName:			// name
+			name = other.name;
+			break;
+		case objArray:			// array
+			array = other.array;
+			break;
+		case objDict:			// dictionary
+			dict = other.dict;
+			break;
+		case objStream:			// stream
+			stream = other.stream;
+			break;
+		case objCmd:			// command name
+			cmd = other.cmd;
+			break;
+		case objError:			// error return from Lexer
+		case objEOF:			// end of file return from Lexer
+		case objNone:			// uninitialized object
+		case objNull:			// null
+			break;
+		default:
+			assert(false);
+	}
+}
+Object::Object &&operator=(const Object &&other)
+{
+	zeroUnion();
+	initUnion(other.type);
+	switch (other.type) {
+		case objBool:			// boolean
+			booln = booln;
+		case objInt:			// integer
+			intg = intg;
+		case objReal:			// real
+			real = real;
+		case objInt64:			// integer with at least 64-bits
+			int64g = int64g;
+		case objRef:			// indirect reference
+			ref = ref;
+			break;
+		// non-POD types:
+		case objString:			// string
+			string = std::move(other.string);
+			break;
+		case objName:			// name
+			name = std::move(other.name);
+			break;
+		case objArray:			// array
+			array = std::move(other.array);
+			break;
+		case objDict:			// dictionary
+			dict = std::move(other.dict);
+			break;
+		case objStream:			// stream
+			stream = std::move(other.stream);
+			break;
+		case objCmd:			// command name
+			cmd = std::move(other.cmd);
+			break;
+		case objError:			// error return from Lexer
+		case objEOF:			// end of file return from Lexer
+		case objNone:			// uninitialized object
+		case objNull:			// null
+			break;
+		default:
+			assert(false);
+	}
+}
+
 Object *Object::initArray(XRef *xref) {
   initObj(objArray);
   array = new Array(xref);
@@ -88,33 +187,7 @@ Object *Object::initStream(Stream *streamA) {
 }
 
 Object *Object::copy(Object *obj) {
-  *obj = *this;
-  switch (type) {
-  case objString:
-    obj->string = string->copy();
-    break;
-  case objName:
-    obj->name = copyString(name);
-    break;
-  case objArray:
-    array->incRef();
-    break;
-  case objDict:
-    dict->incRef();
-    break;
-  case objStream:
-    stream->incRef();
-    break;
-  case objCmd:
-    obj->cmd = copyString(cmd);
-    break;
-  default:
-    break;
-  }
-#ifdef DEBUG_MEM
-  ++numAlloc[type];
-#endif
-  return obj;
+	*this = *obj;
 }
 
 Object *Object::fetch(XRef *xref, Object *obj, int recursion) {

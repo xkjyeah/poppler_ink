@@ -91,22 +91,22 @@ public:
   PDFRectangle *getTrimBox() { return &trimBox; }
   PDFRectangle *getArtBox() { return &artBox; }
   int getRotate() { return rotate; }
-  GooString *getLastModified()
+  std::string getLastModified()
     { return lastModified.isString()
-	? lastModified.getString() : (GooString *)NULL; }
-  Dict *getBoxColorInfo()
-    { return boxColorInfo.isDict() ? boxColorInfo.getDict() : (Dict *)NULL; }
-  Dict *getGroup()
-    { return group.isDict() ? group.getDict() : (Dict *)NULL; }
-  Stream *getMetadata()
-    { return metadata.isStream() ? metadata.getStream() : (Stream *)NULL; }
-  Dict *getPieceInfo()
-    { return pieceInfo.isDict() ? pieceInfo.getDict() : (Dict *)NULL; }
-  Dict *getSeparationInfo()
+	? lastModified.getString() : ""; }
+  std::shared_ptr<Dict> getBoxColorInfo()
+    { return boxColorInfo.isDict() ? boxColorInfo.getDict() : 0; }
+  std::shared_ptr<Dict> getGroup()
+    { return group.isDict() ? group.getDict() : 0; }
+  std::shared_ptr<Stream> getMetadata()
+    { return metadata.isStream() ? metadata.getStream() : 0; }
+  std::shared_ptr<Dict> getPieceInfo()
+    { return pieceInfo.isDict() ? pieceInfo.getDict() : 0; }
+  std::shared_ptr<Dict> getSeparationInfo()
     { return separationInfo.isDict()
-	? separationInfo.getDict() : (Dict *)NULL; }
-  Dict *getResourceDict()
-    { return resources.isDict() ? resources.getDict() : (Dict *)NULL; }
+	? separationInfo.getDict() : 0; }
+  std::shared_ptr<Dict> getResourceDict()
+    { return resources.isDict() ? resources.getDict() : 0; }
   void replaceResource(Object obj1) 
   {  resources.free(); obj1.copy(&resources); }
 
@@ -166,18 +166,18 @@ public:
   PDFRectangle *getTrimBox() { return attrs->getTrimBox(); }
   PDFRectangle *getArtBox() { return attrs->getArtBox(); }
   int getRotate() { return attrs->getRotate(); }
-  GooString *getLastModified() { return attrs->getLastModified(); }
-  Dict *getBoxColorInfo() { return attrs->getBoxColorInfo(); }
-  Dict *getGroup() { return attrs->getGroup(); }
-  Stream *getMetadata() { return attrs->getMetadata(); }
-  Dict *getPieceInfo() { return attrs->getPieceInfo(); }
-  Dict *getSeparationInfo() { return attrs->getSeparationInfo(); }
+  std::string getLastModified() { return attrs->getLastModified(); }
+  std::shared_ptr<Dict> getBoxColorInfo() { return attrs->getBoxColorInfo(); }
+  std::shared_ptr<Dict> getGroup() { return attrs->getGroup(); }
+  std::shared_ptr<Stream> getMetadata() { return attrs->getMetadata(); }
+  std::shared_ptr<Dict> getPieceInfo() { return attrs->getPieceInfo(); }
+  std::shared_ptr<Dict> getSeparationInfo() { return attrs->getSeparationInfo(); }
   PDFDoc *getDoc() { return doc; }
   Ref getRef() { return pageRef; }
 
   // Get resource dictionary.
-  Dict *getResourceDict();
-  Dict *getResourceDictCopy(XRef *xrefA);
+  std::shared_ptr<Dict> getResourceDict();
+  std::shared_ptr<Dict> getResourceDictCopy(XRef *xrefA);
 
   // Get annotations array.
   Object *getAnnots(Object *obj, XRef *xrefA = NULL) { return annotsObj.fetch((xrefA == NULL) ? xref : xrefA, obj); }

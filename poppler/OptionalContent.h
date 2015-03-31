@@ -47,9 +47,9 @@ public:
   // (which does not necessarily include all of the OCGs).
   OCDisplayNode *getDisplayRoot();
 
-  Array* getOrderArray() 
+  std::shared_ptr<Array>  getOrderArray() 
     { return (order.isArray() && order.arrayGetLength() > 0) ? order.getArray() : NULL; }
-  Array* getRBGroupsArray() 
+  std::shared_ptr<Array>  getRBGroupsArray() 
     { return (rbgroups.isArray() && rbgroups.arrayGetLength()) ? rbgroups.getArray() : NULL; }
 
   bool optContentIsVisible( Object *dictRef );

@@ -30,15 +30,21 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
+//#ifdef USE_GCC_PRAGMAS
+//#pragma interface
+//#endif
 
 #include <set>
-#include <cstdio>
+#include <stdio.h>
+#include <string.h>
+#include "goo/gtypes.h"
+#include "goo/gmem.h"
+#include "goo/GooString.h"
+#include "goo/GooLikely.h"
+#include "Error.h"
 #include <string>
 #include <memory>
-#include "Error.h"
+#include <cassert>
 
 #define OBJECT_TYPE_CHECK(wanted_type) \
     if (unlikely(type != wanted_type)) { \
@@ -68,59 +74,6 @@ struct Ref {
   int gen;			// generation number
 };
 
-
-//------------------------------------------------------------------------
-// Contents...
-//------------------------------------------------------------------------
-
-struct Contents {
-  virtual ~Contents() {} 
-};
-struct BoolContents : Contents {
-  bool booln;
-  BoolContents(bool b) : booln(b) {}
-};
-struct IntContents : Contents {
-  int intg;
-  IntContents(int b) : intg(b) {}
-};
-struct Int64Contents : Contents {
-  long long int64g;
-  Int64Contents(long long b) : int64g(b) {}
-};
-struct DoubleContents : Contents {
-  double real;
-  DoubleContents(long long b) : real(b) {}
-};
-struct StringContents : Contents {
-  std::string string;
-  StringContents(std::string b) : string(b) {}
-};
-struct NameContents : Contents {
-  std::string string;
-  NameContents(std::string b) : string(b) {}
-};
-struct ArrayContents : Contents {
-  std::shared_ptr<Array> array;
-  ArrayContents(XRef *xref);
-};
-struct DictContents : Contents {
-  std::shared_ptr<Dict> dict;
-  DictContents(XRef *xref);
-  DictContents(std::shared_ptr<Dict> dict);
-};
-struct StreamContents : Contents {
-  std::shared_ptr<Stream> str;
-  StreamContents(std::shared_ptr<Stream> str) : str(str) {}
-};
-struct RefContents : Contents {
-  Ref ref;
-  RefContents(int numA, int genA) : ref{numA, genA} {}
-};
-struct CommandContents : Contents {
-  std::string str;
-  CommandContents(std::string str) : str(str) {}
-};
 //------------------------------------------------------------------------
 // object types
 //------------------------------------------------------------------------
@@ -156,43 +109,122 @@ enum ObjType {
 // Object
 //------------------------------------------------------------------------
 
-//#define initObj(t) zeroUnion(); ++numAlloc[type = t]
-//#else
-//#define initObj(t) zeroUnion(); type = t
-//#endif
+#define initObj(t) zeroUnion(); initUnion(t);
 
 class Object {
 public:
   // clear the anonymous union as best we can -- clear at least a pointer
-  void zeroUnion() { contents.reset(); }
+  void zeroUnion() {
+	  switch (type) {
+			case objBool:			// boolean
+			case objInt:			// integer
+			case objReal:			// real
+			case objInt64:			// integer with at least 64-bits
+			case objRef:			// indirect reference
+				int64g = 0;
+				break;
+			// non-POD types:
+			case objString:			// string
+				string.~basic_string();
+				break;
+			case objName:			// name
+				name.~basic_string();
+				break;
+
+			case objArray:			// array
+				array.~shared_ptr<Array>();
+				break;
+			case objDict:			// dictionary
+				dict.~shared_ptr<Dict>();
+				break;
+			case objStream:			// stream
+				stream.~shared_ptr<Stream>();
+				break;
+			case objCmd:			// command name
+				cmd.~basic_string();
+				break;
+			case objError:			// error return from Lexer
+			case objEOF:			// end of file return from Lexer
+			case objNone:			// uninitialized object
+			case objNull:			// null
+				break;
+			default:
+				assert(false);
+	  }
+		type = objNone;
+  }
+
+	void initUnion(ObjType type) {
+	  switch (type) {
+			case objBool:			// boolean
+			case objInt:			// integer
+			case objReal:			// real
+			case objInt64:			// integer with at least 64-bits
+			case objRef:			// indirect reference
+				int64g = 0;
+				break;
+			// non-POD types:
+			case objString:			// string
+				new (&string) std::string();
+				break;
+			case objName:			// name
+				new (&name) std::string();
+				break;
+			case objArray:			// array
+				new (&array) std::shared_ptr<Array>();
+				break;
+			case objDict:			// dictionary
+				new (&dict) std::shared_ptr<Dict>();
+				break;
+			case objStream:			// stream
+				new (&stream) std::shared_ptr<Stream>();
+				break;
+			case objCmd:			// command name
+				new (&cmd) std::string();
+				break;
+			case objError:			// error return from Lexer
+			case objEOF:			// end of file return from Lexer
+			case objNone:			// uninitialized object
+			case objNull:			// null
+				break;
+			default:
+				assert(false);
+	  }
+		this->type = type;
+  }
 
   // Default constructor.
   Object():
-    contents() { }
+    type(objNone) { zeroUnion(); }
+	~Object() {zeroUnion();}
 
-  // Copy constructor -- use default
+	// copy, move constructors -- must handle union
+	Object(const Object &);
+	Object(const Object &&);
+	Object &operator=(const Object &);
+	Object &&operator=(const Object &&);
 
   // Initialize an object.
-  Object *initBool(bool boolnA)
-    { contents.reset(new BoolContents()); booln = boolnA; return this; }
+  Object *initBool(GBool boolnA)
+    { initObj(objBool); booln = boolnA; return this; }
   Object *initInt(int intgA)
     { initObj(objInt); intg = intgA; return this; }
   Object *initReal(double realA)
     { initObj(objReal); real = realA; return this; }
-  Object *initString(GooString *stringA)
+  Object *initString(const std::string &stringA)
     { initObj(objString); string = stringA; return this; }
-  Object *initName(const char *nameA)
-    { initObj(objName); name = copyString(nameA); return this; }
+  Object *initName(const std::string &nameA)
+    { initObj(objName); name = nameA; return this; }
   Object *initNull()
     { initObj(objNull); return this; }
   Object *initArray(XRef *xref);
   Object *initDict(XRef *xref);
-  Object *initDict(Dict *dictA);
-  Object *initStream(Stream *streamA);
+  Object *initDict(std::shared_ptr<Dict> dictA);
+  Object *initStream(std::shared_ptr<Stream> streamA);
   Object *initRef(int numA, int genA)
     { initObj(objRef); ref.num = numA; ref.gen = genA; return this; }
-  Object *initCmd(char *cmdA)
-    { initObj(objCmd); cmd = copyString(cmdA); return this; }
+  Object *initCmd(const std::string &cmdA)
+    { initObj(objCmd); cmd = cmdA; return this; }
   Object *initError()
     { initObj(objError); return this; }
   Object *initEOF()
@@ -201,45 +233,47 @@ public:
     { initObj(objInt64); int64g = int64gA; return this; }
 
   // Copy an object.
-//  Object *copy(Object *obj);
-//  Object *shallowCopy(Object *obj) {
-//    *obj = *this;
-//    return obj;
-//  }
+  Object *copy(Object *obj);
+  Object *shallowCopy(Object *obj) {
+		return copy(obj);
+	}
 
   // If object is a Ref, fetch and return the referenced object.
   // Otherwise, return a copy of the object.
   Object *fetch(XRef *xref, Object *obj, int recursion = 0);
 
+  // Free object contents.
+  void free();
+
   // Type checking.
   ObjType getType() { return type; }
-  bool isBool() { return type == objBool; }
-  bool isInt() { return type == objInt; }
-  bool isReal() { return type == objReal; }
-  bool isNum() { return type == objInt || type == objReal || type == objInt64; }
-  bool isString() { return type == objString; }
-  bool isName() { return type == objName; }
-  bool isNull() { return type == objNull; }
-  bool isArray() { return type == objArray; }
-  bool isDict() { return type == objDict; }
-  bool isStream() { return type == objStream; }
-  bool isRef() { return type == objRef; }
-  bool isCmd() { return type == objCmd; }
-  bool isError() { return type == objError; }
-  bool isEOF() { return type == objEOF; }
-  bool isNone() { return type == objNone; }
-  bool isInt64() { return type == objInt64; }
+  GBool isBool() { return type == objBool; }
+  GBool isInt() { return type == objInt; }
+  GBool isReal() { return type == objReal; }
+  GBool isNum() { return type == objInt || type == objReal || type == objInt64; }
+  GBool isString() { return type == objString; }
+  GBool isName() { return type == objName; }
+  GBool isNull() { return type == objNull; }
+  GBool isArray() { return type == objArray; }
+  GBool isDict() { return type == objDict; }
+  GBool isStream() { return type == objStream; }
+  GBool isRef() { return type == objRef; }
+  GBool isCmd() { return type == objCmd; }
+  GBool isError() { return type == objError; }
+  GBool isEOF() { return type == objEOF; }
+  GBool isNone() { return type == objNone; }
+  GBool isInt64() { return type == objInt64; }
 
   // Special type checking.
-  bool isName(const char *nameA)
-    { return type == objName && !strcmp(name, nameA); }
-  bool isDict(const char *dictType);
-  bool isStream(char *dictType);
-  bool isCmd(const char *cmdA)
-    { return type == objCmd && !strcmp(cmd, cmdA); }
+  GBool isName(const std::string &nameA)
+    { return type == objName && name == nameA; }
+  GBool isDict(const char *dictType);
+  GBool isStream(char *dictType);
+  GBool isCmd(const std::string &cmdA)
+    { return type == objCmd && cmd == cmdA; }
 
   // Accessors.
-  bool getBool() { OBJECT_TYPE_CHECK(objBool); return booln; }
+  GBool getBool() { OBJECT_TYPE_CHECK(objBool); return booln; }
   int getInt() { OBJECT_TYPE_CHECK(objInt); return intg; }
   double getReal() { OBJECT_TYPE_CHECK(objReal); return real; }
 
@@ -247,19 +281,22 @@ public:
   // Where the exact value of integers up to 2^63 is required, use isInt64()/getInt64().
   double getNum() { OBJECT_3TYPES_CHECK(objInt, objInt64, objReal);
     return type == objInt ? (double)intg : type == objInt64 ? (double)int64g : real; }
-  GooString *getString() { OBJECT_TYPE_CHECK(objString); return string; }
+  std::string &getString() { OBJECT_TYPE_CHECK(objString); return string; }
   // After takeString() the only method that should be called for the object is free()
   // because the object it's not expected to have a NULL string.
-  GooString *takeString() {
-    OBJECT_TYPE_CHECK(objString); GooString *s = string; string = NULL; return s; }
-  char *getName() { OBJECT_TYPE_CHECK(objName); return name; }
-  Array *getArray() { OBJECT_TYPE_CHECK(objArray); return array; }
-  Dict *getDict() { OBJECT_TYPE_CHECK(objDict); return dict; }
-  Stream *getStream() { OBJECT_TYPE_CHECK(objStream); return stream; }
+  std::string takeString() {
+    OBJECT_TYPE_CHECK(objString);
+		type = objNone;
+		return std::move(string);
+	}
+	std::string &getName() { OBJECT_TYPE_CHECK(objName); return name; }
+	std::shared_ptr<Array> getArray() { OBJECT_TYPE_CHECK(objArray); return array; }
+  std::shared_ptr<Dict> getDict() { OBJECT_TYPE_CHECK(objDict); return dict; }
+  std::shared_ptr<Stream> getStream() { OBJECT_TYPE_CHECK(objStream); return stream; }
   Ref getRef() { OBJECT_TYPE_CHECK(objRef); return ref; }
   int getRefNum() { OBJECT_TYPE_CHECK(objRef); return ref.num; }
   int getRefGen() { OBJECT_TYPE_CHECK(objRef); return ref.gen; }
-  char *getCmd() { OBJECT_TYPE_CHECK(objCmd); return cmd; }
+	std::string &getCmd() { OBJECT_TYPE_CHECK(objCmd); return cmd; }
   long long getInt64() { OBJECT_TYPE_CHECK(objInt64); return int64g; }
 
   // Array accessors.
@@ -273,7 +310,7 @@ public:
   int dictGetLength();
   void dictAdd(char *key, Object *val);
   void dictSet(const char *key, Object *val);
-  bool dictIs(const char *dictType);
+  GBool dictIs(const char *dictType);
   Object *dictLookup(const char *key, Object *obj, int recursion = 0);
   Object *dictLookupNF(const char *key, Object *obj);
   char *dictGetKey(int i);
@@ -281,7 +318,7 @@ public:
   Object *dictGetValNF(int i, Object *obj);
 
   // Stream accessors.
-  bool streamIs(char *dictType);
+  GBool streamIs(char *dictType);
   void streamReset();
   void streamClose();
   int streamGetChar();
@@ -290,7 +327,7 @@ public:
   char *streamGetLine(char *buf, int size);
   Goffset streamGetPos();
   void streamSetPos(Goffset pos, int dir = 0);
-  Dict *streamGetDict();
+	std::shared_ptr<Dict> streamGetDict();
 
   // Output.
   const char *getTypeName();
@@ -301,21 +338,25 @@ public:
 
 private:
 
-  //ObjType type;			// object type
-  std::shared_ptr<Contents> contents;
-//  union {			// value for each type:
-//    bool booln;		//   boolean
-//    int intg;			//   integer
-//    long long int64g;           //   64-bit integer
-//    double real;		//   real
-//    std::string string;		//   string
-//    char *name;			//   name
-//    Array *array;		//   array
-//    Dict *dict;			//   dictionary
-//    Stream *stream;		//   stream
-//    Ref ref;			//   indirect reference
-//    char *cmd;			//   command
-//  };
+  ObjType type;			// object type
+  union {			// value for each type:
+    GBool booln;		//   boolean
+    int intg;			//   integer
+    long long int64g;           //   64-bit integer
+    double real;		//   real
+		std::string string;		//   string
+		std::string name;			//   name
+    std::shared_ptr<Array> 	array;		//   array
+    std::shared_ptr<Dict> 	dict;			//   dictionary
+    std::shared_ptr<Stream>	stream;		//   stream
+    Ref ref;			//   indirect reference
+		std::string cmd;			//   command
+  };
+
+#ifdef DEBUG_MEM
+  static int			// number of each type of object
+    numAlloc[numObjTypes];	//   currently allocated
+#endif
 };
 
 //------------------------------------------------------------------------
@@ -354,10 +395,10 @@ inline void Object::dictAdd(char *key, Object *val)
 inline void Object::dictSet(const char *key, Object *val)
  	{ OBJECT_TYPE_CHECK(objDict); dict->set(key, val); }
 
-inline bool Object::dictIs(const char *dictType)
+inline GBool Object::dictIs(const char *dictType)
   { OBJECT_TYPE_CHECK(objDict); return dict->is(dictType); }
 
-inline bool Object::isDict(const char *dictType)
+inline GBool Object::isDict(const char *dictType)
   { return type == objDict && dictIs(dictType); }
 
 inline Object *Object::dictLookup(const char *key, Object *obj, int recursion)
@@ -381,10 +422,10 @@ inline Object *Object::dictGetValNF(int i, Object *obj)
 
 #include "Stream.h"
 
-inline bool Object::streamIs(char *dictType)
+inline GBool Object::streamIs(char *dictType)
   { OBJECT_TYPE_CHECK(objStream); return stream->getDict()->is(dictType); }
 
-inline bool Object::isStream(char *dictType)
+inline GBool Object::isStream(char *dictType)
   { return type == objStream && streamIs(dictType); }
 
 inline void Object::streamReset()
@@ -411,7 +452,7 @@ inline Goffset Object::streamGetPos()
 inline void Object::streamSetPos(Goffset pos, int dir)
   { OBJECT_TYPE_CHECK(objStream); stream->setPos(pos, dir); }
 
-inline Dict *Object::streamGetDict()
+inline std::shared_ptr<Dict> Object::streamGetDict()
   { OBJECT_TYPE_CHECK(objStream); return stream->getDict(); }
 
 #endif

@@ -783,8 +783,8 @@ public:
   double *getBBox() { return bbox; }
   double getXStep() { return xStep; }
   double getYStep() { return yStep; }
-  Dict *getResDict()
-    { return resDict.isDict() ? resDict.getDict() : (Dict *)NULL; }
+  std::shared_ptr<Dict> getResDict()
+    { return resDict.isDict() ? resDict.getDict() : 0; }
   double *getMatrix() { return matrix; }
   Object *getContentStream() { return &contentStream; }
 
