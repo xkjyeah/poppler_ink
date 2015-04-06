@@ -37,6 +37,9 @@
 #include <stdarg.h>
 #include <stdlib.h> // for NULL
 #include "gtypes.h"
+#include <string>
+#include <memory>
+#include <cassert>
 
 #ifdef __clang__
 # define GOOSTRING_FORMAT __attribute__((__annotate__("gooformat")))
@@ -206,5 +209,51 @@ private:
   static void formatDoubleSmallAware(double x, char *buf, int bufSize, int prec,
 				     GBool trim, char **p, int *len);
 };
+
+
+/** helper string class that allows null values. Maybe use boost::variant? */
+class goostring {
+	bool isnull;
+	std::unique_ptr<std::string> string;
+
+	public:
+	goostring(const std::string &str)
+		: isnull(false), string(new std::string(str)) {}
+	goostring(const char *str) {
+		if (str) {
+			isnull = false;
+			string.reset(new std::string(str));
+		}
+		else {
+			isnull = true;
+		}
+	}
+	goostring()
+		: isnull(true) {}
+	goostring(const goostring &str)
+		: isnull(str.isnull) {
+		if (!isnull) {
+			string.reset(new std::string(str.str()));
+		}
+	}
+	goostring& operator=(const goostring &str)
+	{
+		isnull = str.isnull;
+		if (!isnull) {
+			string.reset(new std::string(str.str()));
+		}
+		return *this;
+	}
+
+	bool isNull() const { return isnull; }
+	const std::string &str() const { return *string; }
+};
+
+inline 
+bool hasUnicodeMarker(const std::string &str) {
+  return str.length() > 1
+		&& (str[0] & 0xff) == 0xfe
+		&& (str[1] & 0xff) == 0xff;
+}
 
 #endif
