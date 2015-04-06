@@ -25,7 +25,7 @@
 class JPXStream: public FilterStream {
 public:
 
-  JPXStream(Stream *strA);
+  JPXStream(const std::shared_ptr<Stream> &strA);
   virtual ~JPXStream();
   virtual StreamKind getKind() { return strJPX; }
   virtual void reset();

@@ -60,18 +60,19 @@ static void str_term_source(j_decompress_ptr cinfo)
 {
 }
 
-DCTStream::DCTStream(Stream *strA, int colorXformA, Object *dict, int recursion) :
+DCTStream::DCTStream(const std::shared_ptr<Stream> &strA, int colorXformA, const Object &dict, int recursion) :
   FilterStream(strA) {
   colorXform = colorXformA;
-  if (dict != NULL) {
-    Object obj;
+  if (!dict.isNone()) {
+		{
+			Object &obj = dict.dictLookup("Width", recursion);
+			err.width = (obj.isInt() && obj.getInt() <= JPEG_MAX_DIMENSION) ? obj.getInt() : 0;
+		}
 
-    dict->dictLookup("Width", &obj, recursion);
-    err.width = (obj.isInt() && obj.getInt() <= JPEG_MAX_DIMENSION) ? obj.getInt() : 0;
-    obj.free();
-    dict->dictLookup("Height", &obj, recursion);
-    err.height = (obj.isInt() && obj.getInt() <= JPEG_MAX_DIMENSION) ? obj.getInt() : 0;
-    obj.free();
+		{
+			Object &obj = dict.dictLookup("Height", recursion);
+			err.height = (obj.isInt() && obj.getInt() <= JPEG_MAX_DIMENSION) ? obj.getInt() : 0;
+		}
   } else
     err.height = err.width = 0;
   init();
@@ -79,7 +80,6 @@ DCTStream::DCTStream(Stream *strA, int colorXformA, Object *dict, int recursion)
 
 DCTStream::~DCTStream() {
   jpeg_destroy_decompress(&cinfo);
-  delete str;
 }
 
 static void exitErrorHandler(jpeg_common_struct *error) {

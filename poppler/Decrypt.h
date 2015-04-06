@@ -112,7 +112,7 @@ public:
   virtual int lookChar() = 0;
   virtual Goffset getPos();
   virtual GBool isBinary(GBool last);
-  virtual Stream *getUndecodedStream() { return this; }
+  virtual std::shared_ptr<Stream> getUndecodedStream() { return shared_from_this(); }
   void setAutoDelete(GBool val);
 
 protected:

@@ -165,7 +165,7 @@ public:
     borderEffectCloudy    // C
   };
 
-  AnnotBorderEffect(Dict *dict);
+  AnnotBorderEffect(const std::shared_ptr<Dict> &dict);
 
   AnnotBorderEffectType getEffectType() const { return effectType; }
   double getIntensity() const { return intensity; }
@@ -260,7 +260,7 @@ protected:
 class AnnotBorderArray: public AnnotBorder {
 public:
   AnnotBorderArray();
-  AnnotBorderArray(Array *array);
+  AnnotBorderArray(const std::shared_ptr<Array> &array);
 
   void setHorizontalCorner(double hc) { horizontalCorner = hc; }
   void setVerticalCorner(double vc) { verticalCorner = vc; }
@@ -285,7 +285,7 @@ class AnnotBorderBS: public AnnotBorder {
 public:
 
   AnnotBorderBS();
-  AnnotBorderBS(Dict *dict);
+  AnnotBorderBS(const std::shared_ptr<Dict> &dict);
 
 private:
   virtual AnnotBorderType getType() const { return typeBS; }
@@ -316,14 +316,14 @@ public:
   AnnotColor(double gray);
   AnnotColor(double r, double g, double b);
   AnnotColor(double c, double m, double y, double k);
-  AnnotColor(Array *array, int adjust = 0);
+  AnnotColor(const std::shared_ptr<Array> &array, int adjust = 0);
 
   void adjustColor(int adjust);
 
   AnnotColorSpace getSpace() const { return (AnnotColorSpace) length; }
   const double *getValues() const { return values; }
 
-  void writeToObject(XRef *xref, Object *dest) const;
+  void writeToObject(XRef *xref, Object &dest) const;
 
 private:
 
@@ -350,7 +350,7 @@ public:
     scaleProportional // P
   };
 
-  AnnotIconFit(Dict *dict);
+  AnnotIconFit(const std::shared_ptr<Dict> &dict);
 
   AnnotIconFitScaleWhen getScaleWhen() { return scaleWhen; }
   AnnotIconFitScale getScale() { return scale; }
@@ -380,14 +380,14 @@ public:
     appearDown
   };
 
-  AnnotAppearance(PDFDoc *docA, Object *dict);
+  AnnotAppearance(PDFDoc *docA, const Object &dict);
   ~AnnotAppearance();
 
   // State is ignored if no subdictionary is present
-  void getAppearanceStream(AnnotAppearanceType type, const char *state, Object *dest);
+  void getAppearanceStream(AnnotAppearanceType type, const std::string &state, Object &dest);
 
   // Access keys in normal appearance subdictionary (N)
-  GooString * getStateKey(int i);
+  const string & getStateKey(int i);
   int getNumStates();
 
   // Removes all associated streams in the xref table. Caller is required to
@@ -398,9 +398,9 @@ public:
   GBool referencesStream(Ref targetStreamRef);
 
 private:
-  static GBool referencesStream(Object *stateObj, Ref targetStreamRef);
+  static GBool referencesStream(const Object &stateObj, Ref targetStreamRef);
   void removeStream(Ref refToStream);
-  void removeStateStreams(Object *state);
+  void removeStateStreams(const Object &state);
 
 protected:
   PDFDoc *doc;
@@ -431,9 +431,9 @@ public:
   int getRotation() { return rotation; }
   AnnotColor *getBorderColor() { return borderColor; }
   AnnotColor *getBackColor() { return backColor; }
-  GooString *getNormalCaption() { return normalCaption; }
-  GooString *getRolloverCaption() { return rolloverCaption; }
-  GooString *getAlternateCaption() { return alternateCaption; }
+  const goostring &getNormalCaption() { return normalCaption; }
+  const goostring &getRolloverCaption() { return rolloverCaption; }
+  const goostring &getAlternateCaption() { return alternateCaption; }
   AnnotIconFit *getIconFit() { return iconFit; }
   AnnotAppearanceCharacsTextPos getPosition() { return position; }
 
@@ -442,9 +442,9 @@ protected:
   int rotation;                           // R  (Default 0)
   AnnotColor *borderColor;                // BC
   AnnotColor *backColor;                  // BG
-  GooString *normalCaption;               // CA
-  GooString *rolloverCaption;             // RC
-  GooString *alternateCaption;            // AC
+  goostring normalCaption;               // CA
+  goostring rolloverCaption;             // RC
+  goostring alternateCaption;            // AC
   // I
   // RI
   // IX
@@ -553,8 +553,8 @@ public:
   };
 
   Annot(PDFDoc *docA, PDFRectangle *rectA);
-  Annot(PDFDoc *docA, Dict *dict);
-  Annot(PDFDoc *docA, Dict *dict, Object *obj);
+  Annot(PDFDoc *docA, const std::shared_ptr<Dict> &dict);
+  Annot(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   GBool isOk() { return ok; }
 
   void incRefCnt();
@@ -562,7 +562,7 @@ public:
 
   virtual void draw(Gfx *gfx, GBool printing);
   // Get the resource dict of the appearance stream
-  virtual Object *getAppearanceResDict(Object *dest);
+  virtual const Object getAppearanceResDict();
 
   GBool match(Ref *refA)
     { return ref.num == refA->num && ref.gen == refA->gen; }
@@ -579,9 +579,9 @@ public:
 
   // Sets the annot contents to new_content
   // new_content should never be NULL
-  virtual void setContents(GooString *new_content);
-  void setName(GooString *new_name);
-  void setModified(GooString *new_date);
+  virtual void setContents(const goostring &new_content);
+  void setName(const goostring &new_name);
+  void setModified(const goostring &new_date);
   void setFlags(Guint new_flags);
 
   void setBorder(AnnotBorder *new_border); // Takes ownership
@@ -590,7 +590,7 @@ public:
   // new_color. 
   void setColor(AnnotColor *new_color);
 
-  void setAppearanceState(const char *state);
+  void setAppearanceState(const goostring &state);
 
   // getters
   PDFDoc *getDoc() const { return doc; }
@@ -600,13 +600,13 @@ public:
   AnnotSubtype getType() const { return type; }
   PDFRectangle *getRect() const { return rect; }
   void getRect(double *x1, double *y1, double *x2, double *y2) const;
-  GooString *getContents() const { return contents; }
+  const std::string &getContents() const { return contents; }
   int getPageNum() const { return page; }
-  GooString *getName() const { return name; }
-  GooString *getModified() const { return modified; }
+  const string &getName() const { return name; }
+  const string &getModified() const { return modified; }
   Guint getFlags() const { return flags; }
   AnnotAppearance *getAppearStreams() const { return appearStreams; }
-  GooString *getAppearState() const { return appearState; }
+  const goostring &getAppearState() const { return appearState; }
   AnnotBorder *getBorder() const { return border; }
   AnnotColor *getColor() const { return color; }
   int getTreeKey() const { return treeKey; }
@@ -620,7 +620,7 @@ private:
   void readArrayNum(Object *pdfArray, int key, double *value);
   // write vStr[i:j[ in appearBuf
 
-  void initialize (PDFDoc *docA, Dict *dict);
+  void initialize (PDFDoc *docA,const std::shared_ptr<Dict> &dict);
   void setPage (int new_page, GBool updateP); // Called by Page::addAnnot and Annots ctor
 
 
@@ -637,14 +637,14 @@ protected:
 		  GBool noReencode);
   void writeString(GooString *str, GooString *appearBuf);
   void createForm(double *bbox, GBool transparencyGroup, Object *resDict, Object *aStream);
-  void createResourcesDict(const char *formName, Object *formStream, const char *stateName,
+  void createResourcesDict(const std::string &formName, const Object &formStream, const std::string &stateName,
 			   double opacity, const char *blendMode, Object *resDict);
   GBool isVisible(GBool printing);
   int getRotation() const;
 
   // Updates the field key of the annotation dictionary
   // and sets M to the current time
-  void update(const char *key, Object *value);
+  void update(const std::string &key, const Object &value);
 
   // Delete appearance streams and reset appearance state
   void invalidateAppearance();
@@ -658,16 +658,16 @@ protected:
   PDFRectangle *rect;               // Rect
 
   // optional data
-  GooString *contents;              // Contents
+	string		contents;              // Contents
   int       page;                   // P
-  GooString *name;                  // NM
-  GooString *modified;              // M
+  string	 	name;                  // NM
+  string 		modified;              // M
   Guint flags;                      // F (must be a 32 bit unsigned int)
   AnnotAppearance *appearStreams;   // AP
   Object appearance;     // a reference to the Form XObject stream
                          //   for the normal appearance
   AnnotAppearanceBBox *appearBBox;  // BBox of generated appearance
-  GooString *appearState;           // AS
+	goostring appearState;           // AS
   int treeKey;                      // Struct Parent;
   Object oc;                        // OC
 
@@ -693,18 +693,18 @@ protected:
 class AnnotPopup: public Annot {
 public:
   AnnotPopup(PDFDoc *docA, PDFRectangle *rect);
-  AnnotPopup(PDFDoc *docA, Dict *dict, Object *obj);
+  AnnotPopup(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   ~AnnotPopup();
 
-  Object *getParent(Object *obj) { return parent.fetch (xref, obj); }
-  Object *getParentNF(Object *obj) { return &parent; }
-  void setParent(Object *parentA);
+  Object &getParent() { return parent; }
+  Object &getParentNF() { return parent; }
+  void setParent(const Object &parentA);
   void setParent(Annot *parentA);
   GBool getOpen() const { return open; }
   void setOpen(GBool openA);
 
 protected:
-  void initialize(PDFDoc *docA, Dict *dict);
+  void initialize(PDFDoc *docA, const std::shared_ptr<Dict> &dict);
 
   Object parent; // Parent
   GBool open;   // Open
@@ -722,36 +722,36 @@ public:
   };
 
   AnnotMarkup(PDFDoc *docA, PDFRectangle *rect);
-  AnnotMarkup(PDFDoc *docA, Dict *dict, Object *obj);
+  AnnotMarkup(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   virtual ~AnnotMarkup();
 
   // getters
-  GooString *getLabel() const { return label; }
+  const string &getLabel() const { return label; }
   AnnotPopup *getPopup() const { return popup; }
   double getOpacity() const { return opacity; }
   // getRC
-  GooString *getDate() const { return date; }
+  const string &getDate() const { return date; }
   int getInReplyToID() const { return inReplyTo.num; }
-  GooString *getSubject() const { return subject; }
+  const goostring &getSubject() const { return subject; }
   AnnotMarkupReplyType getReplyTo() const { return replyTo; }
   AnnotExternalDataType getExData() const { return exData; }
 
   // The annotation takes the ownership of new_popup
   void setPopup(AnnotPopup *new_popup);
-  void setLabel(GooString *new_label);
+  void setLabel(const char *new_label);
   void setOpacity(double opacityA);
-  void setDate(GooString *new_date);
+  void setDate(const char *new_date);
 
 protected:
   virtual void removeReferencedObjects();
 
-  GooString *label;             // T            (Default autor)
+  string label;             // T            (Default autor)
   AnnotPopup *popup;            // Popup
   double opacity;               // CA           (Default 1.0)
   // RC
-  GooString *date;              // CreationDate
+  string  date;              // CreationDate
   Ref inReplyTo;                // IRT
-  GooString *subject;           // Subj
+  goostring subject;           // Subj
   AnnotMarkupReplyType replyTo; // RT           (Default R)
   // this object is overrided by the custom intent fields defined in some
   // annotation types.
@@ -759,7 +759,7 @@ protected:
   AnnotExternalDataType exData; // ExData
 
 private:
-  void initialize(PDFDoc *docA, Dict *dict, Object *obj);
+  void initialize(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
 };
 
 //------------------------------------------------------------------------
@@ -921,8 +921,8 @@ public:
   ~AnnotFreeText();
 
   virtual void draw(Gfx *gfx, GBool printing);
-  virtual Object *getAppearanceResDict(Object *dest);
-  virtual void setContents(GooString *new_content);
+  virtual const Object getAppearanceResDict();
+  virtual void setContents(const goostring &new_content);
 
   void setAppearanceString(GooString *new_string);
   void setQuadding(AnnotFreeTextQuadding new_quadding);
@@ -985,8 +985,8 @@ public:
   ~AnnotLine();
 
   virtual void draw(Gfx *gfx, GBool printing);
-  virtual Object *getAppearanceResDict(Object *dest);
-  virtual void setContents(GooString *new_content);
+  virtual const Object getAppearanceResDict();
+  virtual void setContents(const goostring &new_content);
 
   void setVertices(double x1, double y1, double x2, double y2);
   void setStartEndStyle(AnnotLineEndingStyle start, AnnotLineEndingStyle end);

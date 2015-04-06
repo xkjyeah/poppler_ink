@@ -46,11 +46,11 @@ public:
 
   // Construct a lexer for a single stream.  Deletes the stream when
   // lexer is deleted.
-  Lexer(XRef *xrefA, Stream *str);
+  Lexer(std::weak_ptr<XRef> xrefA, std::shared_ptr<Stream> str);
 
   // Construct a lexer for a stream or array of streams (assumes obj
   // is either a stream or array of streams).
-  Lexer(XRef *xrefA, Object *obj);
+  Lexer(std::weak_ptr<XRef> xrefA, const Object &obj);
 
   // Destructor.
   ~Lexer();
@@ -66,8 +66,8 @@ public:
   void skipChar() { getChar(); }
 
   // Get stream.
-  Stream *getStream()
-    { return curStr.isStream() ? curStr.getStream() : (Stream *)NULL; }
+  std::shared_ptr<Stream> getStream()
+    { return curStr.isStream() ? curStr.getStream() : 0; }
 
   // Get current position in file.  This is only used for error
   // messages.
@@ -102,7 +102,7 @@ private:
   GBool freeArray;		// should lexer free the streams array?
   char tokBuf[tokBufSize];	// temporary token buffer
 
-  XRef *xref;
+  std::weak_ptr<XRef> xref;
 };
 
 #endif

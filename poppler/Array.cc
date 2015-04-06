@@ -46,20 +46,12 @@
 
 Array::Array(XRef *xrefA) {
   xref = xrefA;
-  elems = NULL;
-  size = length = 0;
-  ref = 1;
 #if MULTITHREADED
   gInitMutex(&mutex);
 #endif
 }
 
 Array::~Array() {
-  int i;
-
-  for (i = 0; i < length; ++i)
-    elems[i].free();
-  gfree(elems);
 #if MULTITHREADED
   gDestroyMutex(&mutex);
 #endif
@@ -70,24 +62,20 @@ Object *Array::copy(XRef *xrefA, Object *obj) {
   obj->initArray(xrefA);
   for (int i = 0; i < length; ++i) {
     Object obj1;
-    obj->arrayAdd(elems[i].copy(&obj1));
+    obj->arrayAdd(elems[i]);
   }
   return obj;
 }
 
 int Array::incRef() {
-  arrayLocker();
-  ++ref;
-  return ref;
+	return 1;
 }
 
 int Array::decRef() {
-  arrayLocker();
-  --ref;
-  return ref;
+	return 1;
 }
 
-void Array::add(Object *elem) {
+void Array::add(const Object &elem) {
   arrayLocker();
   if (length == size) {
     if (length == 0) {
@@ -103,50 +91,46 @@ void Array::add(Object *elem) {
 
 void Array::remove(int i) {
   arrayLocker();
-  if (i < 0 || i >= length) {
+  if (i < 0 || i >= elems.size()) {
 #ifdef DEBUG_MEM
     abort();
 #else
     return;
 #endif
   }
-  --length;
-  memmove( elems + i, elems + i + 1, sizeof(elems[0]) * (length - i) );
+	elems.erase(i);
 }
 
-Object *Array::get(int i, Object *obj, int recursion) {
-  if (i < 0 || i >= length) {
+Object &Array::get(int i, int recursion) {
+  if (i < 0 || i >= elems.size()) {
 #ifdef DEBUG_MEM
     abort();
 #else
     return obj->initNull();
 #endif
   }
-  return elems[i].fetch(xref, obj, recursion);
+  return elems[i].fetch(xref, recursion);
 }
 
-Object *Array::getNF(int i, Object *obj) {
-  if (i < 0 || i >= length) {
+Object &Array::getNF(int i) {
+  if (i < 0 || i >= elems.size()) {
 #ifdef DEBUG_MEM
     abort();
 #else
     return obj->initNull();
 #endif
   }
-  return elems[i].copy(obj);
+  return elems[i];
 }
 
-GBool Array::getString(int i, GooString *string)
+GBool Array::getString(int i, std::string &string)
 {
-  Object obj;
+  Object obj = getNF(i);
 
-  if (getNF(i, &obj)->isString()) {
-    string->clear();
-    string->append(obj.getString());
-    obj.free();
+  if (obj.isString()) {
+		string = obj.getString();
     return gTrue;
   } else {
-    obj.free();
     return gFalse;
   }
 }

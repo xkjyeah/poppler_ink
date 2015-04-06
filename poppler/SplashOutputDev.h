@@ -270,28 +270,29 @@ public:
   virtual void endTextObject(GfxState *state);
 
   //----- image drawing
-  virtual void drawImageMask(GfxState *state, Object *ref, Stream *str,
+  virtual void drawImageMask(GfxState *state, const Object &ref, const shared_ptr<Stream> &str,
 			     int width, int height, GBool invert,
 			     GBool interpolate, GBool inlineImg);
-  virtual void setSoftMaskFromImageMask(GfxState *state,
-					Object *ref, Stream *str,
-					int width, int height, GBool invert,
-					GBool inlineImg, double *baseMatrix);
+	virtual void setSoftMaskFromImageMask(GfxState *state,
+					       const Object &ref, const std::shared_ptr<Stream> &str,
+					       int width, int height,
+					       GBool invert,
+					       GBool inlineImg, double *baseMatrix);
   virtual void unsetSoftMaskFromImageMask(GfxState *state, double *baseMatrix);
-  virtual void drawImage(GfxState *state, Object *ref, Stream *str,
+  virtual void drawImage(GfxState *state, const Object &ref, const std::shared_ptr<Stream> &str,
 			 int width, int height, GfxImageColorMap *colorMap,
 			 GBool interpolate, int *maskColors, GBool inlineImg);
-  virtual void drawMaskedImage(GfxState *state, Object *ref, Stream *str,
+  virtual void drawMaskedImage(GfxState *state, const Object &ref, const std::shared_ptr<Stream> &str,
 			       int width, int height,
 			       GfxImageColorMap *colorMap,
 			       GBool interpolate,
-			       Stream *maskStr, int maskWidth, int maskHeight,
+			       const std::shared_ptr<Stream> &maskStr, int maskWidth, int maskHeight,
 			       GBool maskInvert, GBool maskInterpolate);
-  virtual void drawSoftMaskedImage(GfxState *state, Object *ref, Stream *str,
+  virtual void drawSoftMaskedImage(GfxState *state, const Object &ref, const std::shared_ptr<Stream> &str,
 				   int width, int height,
 				   GfxImageColorMap *colorMap,
 				   GBool interpolate,
-				   Stream *maskStr,
+				   const std::shared_ptr<Stream> &maskStr,
 				   int maskWidth, int maskHeight,
 				   GfxImageColorMap *maskColorMap,
 				   GBool maskInterpolate);

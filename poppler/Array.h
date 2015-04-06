@@ -32,6 +32,7 @@
 #include "poppler-config.h"
 #include "Object.h"
 #include "goo/GooMutex.h"
+#include <vector>
 
 class XRef;
 
@@ -39,7 +40,7 @@ class XRef;
 // Array
 //------------------------------------------------------------------------
 
-class Array {
+class Array  {
 public:
 
   // Constructor.
@@ -49,33 +50,36 @@ public:
   ~Array();
 
   // Reference counting.
+	__attribute__((deprecated))
   int incRef();
+	__attribute__((deprecated))
   int decRef();
 
   // Get number of elements.
-  int getLength() { return length; }
+  int getLength() { return elems.size(); }
 
   // Copy array with new xref
-  Object *copy(XRef *xrefA, Object *obj);
+	__attribute__((deprecated))
+  const Object &copy(XRef *xrefA, const Object &obj);
 
   // Add an element.
-  void add(Object *elem);
+  void add(const Object &elem);
 
   // Remove an element by position
   void remove(int i);
 
   // Accessors.
-  Object *get(int i, Object *obj, int resursion = 0);
-  Object *getNF(int i, Object *obj);
-  GBool getString(int i, GooString *string);
+  Object &get(int i, int resursion = 0);
+  Object &getNF(int i);
+  GBool getString(int i, std::string &string);
 
 private:
 
   XRef *xref;			// the xref table for this PDF file
-  Object *elems;		// array of elements
-  int size;			// size of <elems> array
-  int length;			// number of elements in array
-  int ref;			// reference count
+	std::vector<Object> elems;
+  //int size;			// size of <elems> array
+  //int length;			// number of elements in array
+  //int ref;			// reference count
 #if MULTITHREADED
   GooMutex mutex;
 #endif

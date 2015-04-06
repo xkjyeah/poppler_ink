@@ -16,7 +16,7 @@
 
 #include "config.h"
 
-JPXStream::JPXStream(Stream *strA) : FilterStream(strA)
+JPXStream::JPXStream(const std::shared_ptr<Stream> &strA) : FilterStream(strA)
 {
   inited = gFalse;
   image = NULL;
@@ -26,7 +26,6 @@ JPXStream::JPXStream(Stream *strA) : FilterStream(strA)
 }
 
 JPXStream::~JPXStream() {
-  delete str;
   close();
 }
 
@@ -69,11 +68,10 @@ int JPXStream::getChar() {
 void JPXStream::init()
 {
   Object oLen;
-  if (getDict()) getDict()->lookup("Length", &oLen);
+  if (getDict()) oLen = getDict()->lookup("Length");
 
   int bufSize = BUFFER_INITIAL_SIZE;
   if (oLen.isInt()) bufSize = oLen.getInt();
-  oLen.free();
 
   
   int length = 0;

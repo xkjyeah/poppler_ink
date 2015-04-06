@@ -69,19 +69,19 @@ struct MovieActivationParameters {
 
 class Movie {
  public:
-  Movie(Object *objMovie, Object *objAct);
-  Movie(Object *objMovie);
+  Movie(const Object &objMovie, const Object &objAct);
+  Movie(const Object &objMovie);
   ~Movie();
 
   GBool isOk() { return ok; }
-  MovieActivationParameters* getActivationParameters() { return &MA; }
+  MovieActivationParameters &getActivationParameters() { return MA; }
 
-  GooString* getFileName() { return fileName; }
+  std::string & getFileName() { return fileName; }
 
   Gushort getRotationAngle() { return rotationAngle; }
   void getAspect (int *widthA, int *heightA) { *widthA = width; *heightA = height; }
 
-  Object *getPoster(Object *obj) { return poster.copy(obj); }
+  Object &getPoster() { return poster; }
   GBool getShowPoster() { return showPoster; }
 
   GBool getUseFloatingWindow() { return MA.floatingWindow; }
@@ -101,7 +101,7 @@ class Movie {
   Object poster;
   GBool showPoster;
 
-  GooString* fileName;
+  std::string fileName;
 
   MovieActivationParameters MA;
 };

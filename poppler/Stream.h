@@ -95,7 +95,7 @@ typedef struct _ByteRange {
 // Stream (base class)
 //------------------------------------------------------------------------
 
-class Stream {
+class Stream : public std::enable_shared_from_this<Stream> {
 public:
 
   // Constructor.
@@ -105,7 +105,9 @@ public:
   virtual ~Stream();
 
   // Reference counting.
+	__attribute__((deprecated))
   int incRef();
+	__attribute__((deprecated))
   int decRef();
 
   // Get kind of stream.
@@ -204,11 +206,11 @@ public:
   virtual GBool isBinary(GBool last = gTrue) = 0;
 
   // Get the BaseStream of this stream.
-  virtual BaseStream *getBaseStream() = 0;
+  virtual std::shared_ptr<BaseStream> getBaseStream() = 0;
 
   // Get the stream after the last decoder (this may be a BaseStream
   // or a DecryptStream).
-  virtual Stream *getUndecodedStream() = 0;
+  virtual std::shared_ptr<Stream> getUndecodedStream() = 0;
 
   // Get the dictionary associated with this stream.
   virtual std::shared_ptr<Dict> getDict() = 0;
@@ -221,17 +223,17 @@ public:
 			      StreamColorSpaceMode * /*csMode*/) {}
 
   // Return the next stream in the "stack".
-  virtual Stream *getNextStream() { return NULL; }
+  virtual std::shared_ptr<Stream> getNextStream() { return NULL; }
 
   // Add filters to this stream according to the parameters in <dict>.
   // Returns the new stream.
-  Stream *addFilters(Object *dict, int recursion = 0);
+	std::shared_ptr<Stream> addFilters(const Object &dict, int recursion = 0);
 
 private:
   virtual GBool hasGetChars() { return false; }
   virtual int getChars(int nChars, Guchar *buffer);
 
-  Stream *makeFilter(char *name, Stream *str, Object *params, int recursion = 0, Object *dict = NULL);
+	std::shared_ptr<Stream> makeFilter(char *name, const std::shared_ptr<Stream> &str, const Object &params, int recursion = 0, const Object &dict = Object::Null());
 
   int ref;			// reference count
 #if MULTITHREADED
@@ -305,15 +307,16 @@ private:
 class BaseStream: public Stream {
 public:
 
-  BaseStream(Object *dictA, Goffset lengthA);
+  BaseStream(const Object &dictA, Goffset lengthA);
   virtual ~BaseStream();
-  virtual BaseStream *copy() = 0;
-  virtual Stream *makeSubStream(Goffset start, GBool limited,
-				Goffset length, Object *dict) = 0;
+	__attribute__((deprecated))
+  virtual std::shared_ptr<BaseStream> copy() = 0;
+  virtual std::shared_ptr<Stream> makeSubStream(Goffset start, GBool limited,
+				Goffset length, const Object &dict) = 0;
   virtual void setPos(Goffset pos, int dir = 0) = 0;
   virtual GBool isBinary(GBool last = gTrue) { return last; }
-  virtual BaseStream *getBaseStream() { return this; }
-  virtual Stream *getUndecodedStream() { return this; }
+  virtual std::shared_ptr<BaseStream> getBaseStream() { return std::static_pointer_cast<BaseStream>(shared_from_this()); }
+  virtual std::shared_ptr<Stream> getUndecodedStream() { return shared_from_this(); }
   virtual std::shared_ptr<Dict> getDict() { return dict.getDict(); }
   virtual GooString *getFileName() { return NULL; }
   virtual Goffset getLength() { return length; }
@@ -337,22 +340,22 @@ protected:
 class FilterStream: public Stream {
 public:
 
-  FilterStream(Stream *strA);
+  FilterStream(const std::shared_ptr<Stream> &strA);
   virtual ~FilterStream();
   virtual void close();
   virtual Goffset getPos() { return str->getPos(); }
   virtual void setPos(Goffset pos, int dir = 0);
-  virtual BaseStream *getBaseStream() { return str->getBaseStream(); }
-  virtual Stream *getUndecodedStream() { return str->getUndecodedStream(); }
+  virtual std::shared_ptr<BaseStream> getBaseStream() { return str->getBaseStream(); }
+  virtual std::shared_ptr<Stream> getUndecodedStream() { return str->getUndecodedStream(); }
   virtual std::shared_ptr<Dict> getDict() { return str->getDict(); }
-  virtual Stream *getNextStream() { return str; }
+  virtual std::shared_ptr<Stream> getNextStream() { return str; }
 
   virtual int getUnfilteredChar () { return str->getUnfilteredChar(); }
   virtual void unfilteredReset () { str->unfilteredReset(); }
 
 protected:
 
-  Stream *str;
+	std::shared_ptr<Stream> str;
 };
 
 //------------------------------------------------------------------------
@@ -365,7 +368,7 @@ public:
   // Create an image stream object for an image with the specified
   // parameters.  Note that these are the actual image parameters,
   // which may be different from the predictor parameters.
-  ImageStream(Stream *strA, int widthA, int nCompsA, int nBitsA);
+  ImageStream(const shared_ptr<Stream> &strA, int widthA, int nCompsA, int nBitsA);
 
   ~ImageStream();
 
@@ -388,7 +391,7 @@ public:
 
 private:
 
-  Stream *str;			// base stream
+  std::shared_ptr<Stream> str;			// base stream
   int width;			// pixels per line
   int nComps;			// components per pixel
   int nBits;			// bits per component
@@ -408,7 +411,7 @@ public:
 
   // Create a predictor object.  Note that the parameters are for the
   // predictor, and may not match the actual image parameters.
-  StreamPredictor(Stream *strA, int predictorA,
+  StreamPredictor(const std::shared_ptr<Stream> &strA, int predictorA,
 		  int widthA, int nCompsA, int nBitsA);
 
   ~StreamPredictor();
@@ -423,7 +426,7 @@ private:
 
   GBool getNextLine();
 
-  Stream *str;			// base stream
+  std::shared_ptr<Stream> str;			// base stream
   int predictor;		// predictor
   int width;			// pixels per line
   int nComps;			// components per pixel
@@ -446,11 +449,11 @@ class FileStream: public BaseStream {
 public:
 
   FileStream(GooFile* fileA, Goffset startA, GBool limitedA,
-	     Goffset lengthA, Object *dictA);
+	     Goffset lengthA, const Object &dictA);
   virtual ~FileStream();
-  virtual BaseStream *copy();
-  virtual Stream *makeSubStream(Goffset startA, GBool limitedA,
-				Goffset lengthA, Object *dictA);
+  virtual std::shared_ptr<BaseStream> copy();
+  virtual std::shared_ptr<Stream> makeSubStream(Goffset startA, GBool limitedA,
+				Goffset lengthA, const Object &dictA);
   virtual StreamKind getKind() { return strFile; }
   virtual void reset();
   virtual void close();
@@ -516,11 +519,11 @@ class CachedFileStream: public BaseStream {
 public:
 
   CachedFileStream(CachedFile *ccA, Goffset startA, GBool limitedA,
-	     Goffset lengthA, Object *dictA);
+	     Goffset lengthA, const Object &dictA);
   virtual ~CachedFileStream();
-  virtual BaseStream *copy();
-  virtual Stream *makeSubStream(Goffset startA, GBool limitedA,
-				Goffset lengthA, Object *dictA);
+  virtual std::shared_ptr<BaseStream> copy();
+  virtual std::shared_ptr<Stream> makeSubStream(Goffset startA, GBool limitedA,
+				Goffset lengthA, const Object &dictA);
   virtual StreamKind getKind() { return strCachedFile; }
   virtual void reset();
   virtual void close();
@@ -559,11 +562,11 @@ private:
 class MemStream: public BaseStream {
 public:
 
-  MemStream(char *bufA, Goffset startA, Goffset lengthA, Object *dictA);
+  MemStream(char *bufA, Goffset startA, Goffset lengthA, const Object &dictA);
   virtual ~MemStream();
-  virtual BaseStream *copy();
-  virtual Stream *makeSubStream(Goffset start, GBool limited,
-				Goffset lengthA, Object *dictA);
+  virtual std::shared_ptr<BaseStream> copy();
+  virtual std::shared_ptr<Stream> makeSubStream(Goffset start, GBool limited,
+				Goffset lengthA, const Object &dictA);
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();
   virtual void close();
@@ -608,11 +611,11 @@ private:
 class EmbedStream: public BaseStream {
 public:
 
-  EmbedStream(Stream *strA, Object *dictA, GBool limitedA, Goffset lengthA);
+  EmbedStream(const std::shared_ptr<Stream> &strA, const Object &dictA, GBool limitedA, Goffset lengthA);
   virtual ~EmbedStream();
-  virtual BaseStream *copy();
-  virtual Stream *makeSubStream(Goffset start, GBool limitedA,
-				Goffset lengthA, Object *dictA);
+  virtual std::shared_ptr<BaseStream> copy();
+  virtual std::shared_ptr<Stream> makeSubStream(Goffset start, GBool limitedA,
+				Goffset lengthA, const Object &dictA);
   virtual StreamKind getKind() { return str->getKind(); }
   virtual void reset() {}
   virtual int getChar();
@@ -631,7 +634,7 @@ private:
   virtual GBool hasGetChars() { return true; }
   virtual int getChars(int nChars, Guchar *buffer);
 
-  Stream *str;
+  std::shared_ptr<Stream> str;
   GBool limited;
 };
 
@@ -642,7 +645,7 @@ private:
 class ASCIIHexStream: public FilterStream {
 public:
 
-  ASCIIHexStream(Stream *strA);
+  ASCIIHexStream(const std::shared_ptr<Stream> &strA);
   virtual ~ASCIIHexStream();
   virtual StreamKind getKind() { return strASCIIHex; }
   virtual void reset();
@@ -665,7 +668,7 @@ private:
 class ASCII85Stream: public FilterStream {
 public:
 
-  ASCII85Stream(Stream *strA);
+  ASCII85Stream(const std::shared_ptr<Stream> &strA);
   virtual ~ASCII85Stream();
   virtual StreamKind getKind() { return strASCII85; }
   virtual void reset();
@@ -690,7 +693,7 @@ private:
 class LZWStream: public FilterStream {
 public:
 
-  LZWStream(Stream *strA, int predictor, int columns, int colors,
+  LZWStream(const std::shared_ptr<Stream> &strA, int predictor, int columns, int colors,
 	    int bits, int earlyA);
   virtual ~LZWStream();
   virtual StreamKind getKind() { return strLZW; }
@@ -750,7 +753,7 @@ private:
 class RunLengthStream: public FilterStream {
 public:
 
-  RunLengthStream(Stream *strA);
+  RunLengthStream(const std::shared_ptr<Stream> &strA);
   virtual ~RunLengthStream();
   virtual StreamKind getKind() { return strRunLength; }
   virtual void reset();
@@ -783,7 +786,7 @@ struct CCITTCodeTable;
 class CCITTFaxStream: public FilterStream {
 public:
 
-  CCITTFaxStream(Stream *strA, int encodingA, GBool endOfLineA,
+  CCITTFaxStream(const std::shared_ptr<Stream> &strA, int encodingA, GBool endOfLineA,
 		 GBool byteAlignA, int columnsA, int rowsA,
 		 GBool endOfBlockA, GBool blackA);
   virtual ~CCITTFaxStream();
@@ -867,7 +870,7 @@ struct DCTHuffTable {
 class DCTStream: public FilterStream {
 public:
 
-  DCTStream(Stream *strA, int colorXformA, Object *dict, int recursion);
+  DCTStream(const std::shared_ptr<Stream> &strA, int colorXformA, const Object &dict, int recursion);
   virtual ~DCTStream();
   virtual StreamKind getKind() { return strDCT; }
   virtual void reset();
@@ -974,7 +977,7 @@ struct FlateDecode {
 class FlateStream: public FilterStream {
 public:
 
-  FlateStream(Stream *strA, int predictor, int columns,
+  FlateStream(const std::shared_ptr<Stream> &strA, int predictor, int columns,
 	      int colors, int bits);
   virtual ~FlateStream();
   virtual StreamKind getKind() { return strFlate; }
@@ -1049,7 +1052,7 @@ private:
 class EOFStream: public FilterStream {
 public:
 
-  EOFStream(Stream *strA);
+  EOFStream(const std::shared_ptr<Stream> &strA);
   virtual ~EOFStream();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset() {}
@@ -1066,7 +1069,7 @@ public:
 class BufStream: public FilterStream {
 public:
 
-  BufStream(Stream *strA, int bufSizeA);
+  BufStream(const std::shared_ptr<Stream> &strA, int bufSizeA);
   virtual ~BufStream();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();
@@ -1091,7 +1094,7 @@ private:
 class FixedLengthEncoder: public FilterStream {
 public:
 
-  FixedLengthEncoder(Stream *strA, int lengthA);
+  FixedLengthEncoder(const std::shared_ptr<Stream> &strA, int lengthA);
   ~FixedLengthEncoder();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();
@@ -1114,7 +1117,7 @@ private:
 class ASCIIHexEncoder: public FilterStream {
 public:
 
-  ASCIIHexEncoder(Stream *strA);
+  ASCIIHexEncoder(const std::shared_ptr<Stream> &strA);
   virtual ~ASCIIHexEncoder();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();
@@ -1144,7 +1147,7 @@ private:
 class ASCII85Encoder: public FilterStream {
 public:
 
-  ASCII85Encoder(Stream *strA);
+  ASCII85Encoder(const std::shared_ptr<Stream> &strA);
   virtual ~ASCII85Encoder();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();
@@ -1174,7 +1177,7 @@ private:
 class RunLengthEncoder: public FilterStream {
 public:
 
-  RunLengthEncoder(Stream *strA);
+  RunLengthEncoder(const std::shared_ptr<Stream> &strA);
   virtual ~RunLengthEncoder();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();
@@ -1204,7 +1207,7 @@ private:
 class CMYKGrayEncoder: public FilterStream {
 public:
 
-  CMYKGrayEncoder(Stream *strA);
+  CMYKGrayEncoder(const std::shared_ptr<Stream> &strA);
   virtual ~CMYKGrayEncoder();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();
@@ -1233,7 +1236,7 @@ private:
 class RGBGrayEncoder: public FilterStream {
 public:
 
-  RGBGrayEncoder(Stream *strA);
+  RGBGrayEncoder(const std::shared_ptr<Stream> &strA);
   virtual ~RGBGrayEncoder();
   virtual StreamKind getKind() { return strWeird; }
   virtual void reset();

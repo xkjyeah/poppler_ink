@@ -50,7 +50,7 @@ extern "C" {
 struct str_src_mgr {
     struct jpeg_source_mgr pub;
     JOCTET buffer;
-    Stream *str;
+    shared_ptr<Stream> str;
     int index;
 };
 
@@ -64,7 +64,7 @@ struct str_error_mgr {
 class DCTStream: public FilterStream {
 public:
 
-  DCTStream(Stream *strA, int colorXformA, Object *dict, int recursion);
+  DCTStream(const std::shared_ptr<Stream> &strA, int colorXformA, const Object &dict, int recursion);
   virtual ~DCTStream();
   virtual StreamKind getKind() { return strDCT; }
   virtual void reset();

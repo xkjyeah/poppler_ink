@@ -83,7 +83,7 @@ Lexer::Lexer(XRef *xrefA, Stream *str) {
   curStr.streamReset();
 }
 
-Lexer::Lexer(XRef *xrefA, Object *obj) {
+Lexer::Lexer(XRef *xrefA, const Object &obj) {
   Object obj2;
 
   lookCharLastValueCached = LOOK_VALUE_NOT_CACHED;

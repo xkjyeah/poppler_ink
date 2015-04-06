@@ -27,11 +27,11 @@ public:
   ~EmbFile();
 
   int size() { return m_size; }
-  GooString *modDate() { return m_modDate; }
-  GooString *createDate() { return m_createDate; }
-  GooString *checksum() { return m_checksum; }
-  GooString *mimeType() { return m_mimetype; }
-  Stream *stream() { return isOk() ? m_objStr.getStream() : NULL; }
+  std::string modDate() { return m_modDate; }
+  std::string createDate() { return m_createDate; }
+  std::string checksum() { return m_checksum; }
+  std::string mimeType() { return m_mimetype; }
+  std::shared_ptr<Stream> stream() { return isOk() ? m_objStr.getStream() : 0; }
   GBool isOk() { return m_objStr.isStream(); }
   GBool save(const char *path);
 
@@ -39,10 +39,10 @@ private:
   GBool save2(FILE *f);
 
   int m_size;
-  GooString *m_createDate;
-  GooString *m_modDate;
-  GooString *m_checksum;
-  GooString *m_mimetype;
+  std::string m_createDate;
+  std::string m_modDate;
+  std::string m_checksum;
+  std::string m_mimetype;
   Object m_objStr;
 };
 
@@ -53,9 +53,9 @@ public:
 
   GBool isOk() { return ok; }
 
-  GooString *getFileName() const { return fileName; }
-  GooString *getFileNameForPlatform();
-  GooString *getDescription() const { return desc; }
+  std::string getFileName() const { return fileName; }
+  std::string getFileNameForPlatform();
+  std::string getDescription() const { return desc; }
   EmbFile *getEmbeddedFile();
 
 private:
@@ -63,11 +63,11 @@ private:
 
   Object fileSpec;
 
-  GooString *fileName;         // F, UF, DOS, Mac, Unix
-  GooString *platformFileName;
+  std::string fileName;         // F, UF, DOS, Mac, Unix
+  std::string platformFileName;
   Object fileStream;           // Ref to F entry in UF
   EmbFile *embFile;
-  GooString *desc;             // Desc
+  std::string desc;             // Desc
 };
 
 GBool getFileSpecName (Object *fileSpec, Object *fileName);

@@ -64,26 +64,26 @@ public:
   int getLength() { return length; }
 
   // Add an entry.  NB: does not copy key.
-  void add(char *key, Object *val);
+  void add(char *key, const Object &val);
 
   // Update the value of an existing entry, otherwise create it
-  void set(const char *key, Object *val);
+  void set(const std::string &key, const Object &val);
   // Remove an entry. This invalidate indexes
-  void remove(const char *key);
+  void remove(const std::string &key);
 
   // Check if dictionary is of specified type.
-  GBool is(const char *type);
+  GBool is(const std::string &type);
 
   // Look up an entry and return the value.  Returns a null object
   // if <key> is not in the dictionary.
-  Object *lookup(const char *key, Object *obj, int recursion = 0);
-  Object *lookupNF(const char *key, Object *obj);
-  GBool lookupInt(const char *key, const char *alt_key, int *value);
+  Object &lookup(const std::string &key, int recursion = 0);
+  Object &lookupNF(const std::string &key);
+  GBool lookupInt(const std::string &key, const std::string &alt_key, int &value);
 
   // Iterative accessors.
-  char *getKey(int i);
-  Object *getVal(int i, Object *obj);
-  Object *getValNF(int i, Object *obj);
+  const std::string &getKey(int i);
+  Object &getVal(int i);
+  Object &getValNF(int i);
 
   // Set the xref pointer.  This is only used in one special case: the
   // trailer dictionary, which is read before the xref table is
@@ -92,7 +92,7 @@ public:
   
   XRef *getXRef() { return xref; }
   
-  GBool hasKey(const char *key);
+  GBool hasKey(const std::string &key);
 
 private:
 

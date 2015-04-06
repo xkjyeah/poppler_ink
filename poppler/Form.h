@@ -342,7 +342,7 @@ public:
   GBool setState (char *state);
   GBool getState(char *state);
 
-  char *getAppearanceState() { return appearanceState.isName() ? appearanceState.getName() : NULL; }
+	std::string getAppearanceState() { return appearanceState.isName() ? appearanceState.getName() : ""; }
 
   void fillChildrenSiblingsID ();
   

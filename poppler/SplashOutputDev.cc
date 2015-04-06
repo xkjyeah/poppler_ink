@@ -2700,7 +2700,7 @@ GBool SplashOutputDev::imageMaskSrc(void *data, SplashColorPtr line) {
   return gTrue;
 }
 
-void SplashOutputDev::drawImageMask(GfxState *state, Object *ref, Stream *str,
+void SplashOutputDev::drawImageMask(GfxState *state, const Object &ref, const shared_ptr<Stream> &str,
 				    int width, int height, GBool invert,
 				    GBool interpolate, GBool inlineImg) {
   double *ctm;
@@ -2744,7 +2744,7 @@ void SplashOutputDev::drawImageMask(GfxState *state, Object *ref, Stream *str,
 }
 
 void SplashOutputDev::setSoftMaskFromImageMask(GfxState *state,
-					       Object *ref, Stream *str,
+					       const Object &ref, const std::shared_ptr<Stream> &str,
 					       int width, int height,
 					       GBool invert,
 					       GBool inlineImg, double *baseMatrix) {
@@ -3158,7 +3158,8 @@ GBool SplashOutputDev::tilingBitmapSrc(void *data, SplashColorPtr colorLine,
   return gTrue;
 }
 
-void SplashOutputDev::drawImage(GfxState *state, Object *ref, Stream *str,
+void SplashOutputDev::drawImage(GfxState *state,
+				const Object &ref, const std::shared_ptr<Stream> &str,
 				int width, int height,
 				GfxImageColorMap *colorMap,
 				GBool interpolate,
@@ -3420,11 +3421,11 @@ GBool SplashOutputDev::maskedImageSrc(void *data, SplashColorPtr colorLine,
   return gTrue;
 }
 
-void SplashOutputDev::drawMaskedImage(GfxState *state, Object *ref,
-				      Stream *str, int width, int height,
+void SplashOutputDev::drawMaskedImage(GfxState *state, const Object &ref,
+				      const std::shared_ptr<Stream> &str, int width, int height,
 				      GfxImageColorMap *colorMap,
 				      GBool interpolate,
-				      Stream *maskStr, int maskWidth,
+				      const std::shared_ptr<Stream> &maskStr, int maskWidth,
 				      int maskHeight, GBool maskInvert,
 				      GBool maskInterpolate) {
   GfxImageColorMap *maskColorMap;
@@ -3458,11 +3459,11 @@ void SplashOutputDev::drawMaskedImage(GfxState *state, Object *ref,
     decodeLow.initInt(maskInvert ? 0 : 1);
     decodeHigh.initInt(maskInvert ? 1 : 0);
     maskDecode.initArray((xref) ? xref : doc->getXRef());
-    maskDecode.arrayAdd(&decodeLow);
-    maskDecode.arrayAdd(&decodeHigh);
+    maskDecode.arrayAdd(decodeLow);
+    maskDecode.arrayAdd(decodeHigh);
     maskColorMap = new GfxImageColorMap(1, &maskDecode,
 					new GfxDeviceGrayColorSpace());
-    maskDecode.free();
+    //maskDecode.free();
     drawSoftMaskedImage(state, ref, str, width, height, colorMap, interpolate,
 			maskStr, maskWidth, maskHeight, maskColorMap, maskInterpolate);
     delete maskColorMap;
@@ -3597,11 +3598,11 @@ void SplashOutputDev::drawMaskedImage(GfxState *state, Object *ref,
   }
 }
 
-void SplashOutputDev::drawSoftMaskedImage(GfxState *state, Object *ref,
-					  Stream *str, int width, int height,
+void SplashOutputDev::drawSoftMaskedImage(GfxState *state, const Object &ref,
+					  const std::shared_ptr<Stream> &str, int width, int height,
 					  GfxImageColorMap *colorMap,
 					  GBool interpolate,
-					  Stream *maskStr,
+					  const std::shared_ptr<Stream> &maskStr,
 					  int maskWidth, int maskHeight,
 					  GfxImageColorMap *maskColorMap,
 					  GBool maskInterpolate) {

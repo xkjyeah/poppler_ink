@@ -73,8 +73,8 @@ GBool parseDateString(const char *dateString, int *year, int *month, int *day, i
 }
 
 
-GooString *timeToDateString(time_t *timet) {
-  GooString *dateString;
+std::string timeToDateString(time_t *timet) {
+	std::string dateString;
   char s[5];
   struct tm *gt;
   size_t len;
@@ -91,28 +91,28 @@ GooString *timeToDateString(time_t *timet) {
 
   /* Year YYYY */
   len = strftime (s, sizeof(s), "%Y", gt);
-  dateString->append (s, len);
+  dateString.append (s, len);
 
   /* Month MM */
   len = strftime (s, sizeof(s), "%m", gt);
-  dateString->append (s, len);
+  dateString.append (s, len);
 
   /* Day DD */
   len = strftime (s, sizeof(s), "%d", gt);
-  dateString->append (s, len);
+  dateString.append (s, len);
 
   /* Hour HH */
   len = strftime (s, sizeof(s), "%H", gt);
-  dateString->append (s, len);
+  dateString.append (s, len);
 
   /* Minute mm */
   len = strftime (s, sizeof(s), "%M", gt);
-  dateString->append (s, len);
+  dateString.append (s, len);
 
   /* Second SS */
   len = strftime (s, sizeof(s), "%S", gt);
-  dateString->append (s, len);
+  dateString.append (s, len);
 
-  return dateString;
+	return dateString;
 }
 

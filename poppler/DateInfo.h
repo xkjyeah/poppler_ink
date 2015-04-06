@@ -30,6 +30,6 @@ GBool parseDateString(const char *string, int *year, int *month, int *day, int *
 /* Converts the time_t into a PDF Date format string.
  * If timet is NULL, current time is used.
  */
-GooString *timeToDateString(time_t *timet);
+std::string timeToDateString(time_t *timet);
 
 #endif

@@ -190,9 +190,9 @@ Object *Object::copy(Object *obj) {
 	*this = *obj;
 }
 
-Object *Object::fetch(XRef *xref, Object *obj, int recursion) {
+Object &Object::fetch(XRef *xref, int recursion) {
   return (type == objRef && xref) ?
-         xref->fetch(ref.num, ref.gen, obj, recursion) : copy(obj);
+         xref->fetch(ref.num, ref.gen, recursion) : *this;
 }
 
 const char *Object::getTypeName() {
@@ -288,6 +288,54 @@ void Object::memCheck(FILE *f) {
   (void)f;
 #endif
 }
+
+
+// bool operator==(const Object &other) const {
+// 	if (type != other.type)
+// 		return false;
+// 
+// 	switch (type) {
+// 		case objBool:			// boolean
+// 			return booln == other.booln;
+// 		case objInt:			// integer
+// 			return intg == other.intg;
+// 		case objReal:			// real
+// 			return real == other.real;
+// 		case objInt64:			// integer with at least 64-bits
+// 			return int64g == other.int64g;
+// 		case objRef:			// indirect reference
+// 			return ref.num == other.ref.num &&
+// 							ref.gen == other.ref.gen;
+// 		// non-POD types:
+// 		case objString:			// string
+// 			return string == other.string;
+// 		case objName:			// name
+// 			return name == other.name;
+// 		case objArray:			// array
+// 			assert(false);
+// 			return false;
+// 			break;
+// 		case objDict:			// dictionary
+// 			dict.~shared_ptr<Dict>();
+// 			break;
+// 		case objStream:			// stream
+// 			stream.~shared_ptr<Stream>();
+// 			break;
+// 		case objCmd:			// command name
+// 			cmd.~basic_string();
+// 			break;
+// 		case objError:			// error return from Lexer
+// 		case objEOF:			// end of file return from Lexer
+// 		case objNone:			// uninitialized object
+// 		case objNull:			// null
+// 			break;
+// 		default:
+// 			assert(false);
+// 
+// 	}
+// 
+// }
+
 
 ArrayContents::ArrayContents(XRef *xref) : array(make_shared(new Array(xref))) {}
 DictContents::DictContents(XRef *xref) : dict(make_shared(new Dict(xref))) {}

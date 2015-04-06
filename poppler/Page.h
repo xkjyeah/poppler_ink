@@ -78,7 +78,7 @@ public:
   // Construct a new PageAttrs object by merging a dictionary
   // (of type Pages or Page) into another PageAttrs object.  If
   // <attrs> is NULL, uses defaults.
-  PageAttrs(PageAttrs *attrs, Dict *dict);
+  PageAttrs(PageAttrs *attrs, std::shared_ptr<Dict> dict);
 
   // Destructor.
   ~PageAttrs();
@@ -108,14 +108,14 @@ public:
   std::shared_ptr<Dict> getResourceDict()
     { return resources.isDict() ? resources.getDict() : 0; }
   void replaceResource(Object obj1) 
-  {  resources.free(); obj1.copy(&resources); }
+  {  resources = obj1; }
 
   // Clip all other boxes to the MediaBox.
   void clipBoxes();
 
 private:
 
-  GBool readBox(Dict *dict, const char *key, PDFRectangle *box);
+  GBool readBox(std::shared_ptr<Dict> dict, const char *key, PDFRectangle *box);
 
   PDFRectangle mediaBox;
   PDFRectangle cropBox;
@@ -141,7 +141,7 @@ class Page {
 public:
 
   // Constructor.
-  Page(PDFDoc *docA, int numA, Dict *pageDict, Ref pageRefA, PageAttrs *attrsA, Form *form);
+  Page(PDFDoc *docA, int numA, std::shared_ptr<Dict> pageDict, Ref pageRefA, PageAttrs *attrsA, Form *form);
 
   // Destructor.
   ~Page();
@@ -180,7 +180,7 @@ public:
   std::shared_ptr<Dict> getResourceDictCopy(XRef *xrefA);
 
   // Get annotations array.
-  Object *getAnnots(Object *obj, XRef *xrefA = NULL) { return annotsObj.fetch((xrefA == NULL) ? xref : xrefA, obj); }
+  Object &getAnnots(Object &obj, XRef *xrefA = NULL) { return annotsObj.fetch((xrefA == NULL) ? xref : xrefA); }
   // Add a new annotation to the page
   void addAnnot(Annot *annot);
   // Remove an existing annotation from the page
@@ -193,14 +193,14 @@ public:
   Annots *getAnnots(XRef *xrefA = NULL);
 
   // Get contents.
-  Object *getContents(Object *obj) { return contents.fetch(xref, obj); }
+  Object &getContents() { return contents.fetch(xref); }
 
   // Get thumb.
-  Object *getThumb(Object *obj) { return thumb.fetch(xref, obj); }
+  Object &getThumb() { return thumb.fetch(xref); }
   GBool loadThumb(unsigned char **data, int *width, int *height, int *rowstride);
 
   // Get transition.
-  Object *getTrans(Object *obj) { return trans.fetch(xref, obj); }
+  Object &getTrans() { return trans.fetch(xref); }
 
   // Get form.
   FormPageWidgets *getFormWidgets();
@@ -211,7 +211,7 @@ public:
   double getDuration() { return duration; }
 
   // Get actions
-  Object *getActions(Object *obj) { return actions.fetch(xref, obj); }
+  Object &getActions() { return actions.fetch(xref); }
 
   enum PageAdditionalActionsType {
     actionOpenPage,     ///< Performed when opening the page
