@@ -236,6 +236,13 @@ class goostring {
 			string.reset(new std::string(str.str()));
 		}
 	}
+	bool operator==(const char *c) const
+	{
+		if (isnull)
+			return !c;
+
+		return *string == c;
+	}
 	goostring& operator=(const goostring &str)
 	{
 		isnull = str.isnull;
@@ -243,6 +250,9 @@ class goostring {
 			string.reset(new std::string(str.str()));
 		}
 		return *this;
+	}
+	operator bool () const {
+		return !isnull;
 	}
 
 	bool isNull() const { return isnull; }

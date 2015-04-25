@@ -76,6 +76,9 @@ public:
 
   // Look up an entry and return the value.  Returns a null object
   // if <key> is not in the dictionary.
+	__attribute__((deprecated))
+  Object *lookup(const std::string &key, Object *o, int recursion = 0)
+	{ *o = lookup(key, recursion); return o; }
   Object &lookup(const std::string &key, int recursion = 0);
   Object &lookupNF(const std::string &key);
   GBool lookupInt(const std::string &key, const std::string &alt_key, int &value);

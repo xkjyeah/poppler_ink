@@ -168,7 +168,7 @@ public:
 	W900 };
 
   // Build a GfxFont object.
-  static GfxFont *makeFont(XRef *xref, const char *tagA, Ref idA, Dict *fontDict);
+  static GfxFont *makeFont(XRef *xref, const char *tagA, Ref idA, const std::shared_ptr<Dict> &fontDict);
 
   GfxFont(const char *tagA, Ref idA, GooString *nameA,
 	  GfxFontType typeA, Ref embFontIDA);

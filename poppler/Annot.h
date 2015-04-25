@@ -190,7 +190,7 @@ public:
     AnnotCoord coord1, coord2, coord3, coord4;
   };
 
-  AnnotQuadrilaterals(Array *array, PDFRectangle *rect);
+  AnnotQuadrilaterals(const std::shared_ptr<Array> &array, PDFRectangle *rect);
   AnnotQuadrilaterals(AnnotQuadrilateral **quads, int quadsLength);
   ~AnnotQuadrilaterals();
 
@@ -238,7 +238,7 @@ public:
   virtual double *getDash() const { return dash; }
   virtual AnnotBorderStyle getStyle() const { return style; }
 
-  virtual void writeToObject(XRef *xref, Object *obj1) const = 0;
+  virtual void writeToObject(XRef *xref, Object &obj1) const = 0;
 
 protected:
   AnnotBorder();
@@ -270,7 +270,7 @@ public:
 
 private:
   virtual AnnotBorderType getType() const { return typeArray; }
-  virtual void writeToObject(XRef *xref, Object *obj1) const;
+  virtual void writeToObject(XRef *xref, Object &obj1) const;
 
   double horizontalCorner;          // (Default 0)
   double verticalCorner;            // (Default 0)
@@ -289,7 +289,7 @@ public:
 
 private:
   virtual AnnotBorderType getType() const { return typeBS; }
-  virtual void writeToObject(XRef *xref, Object *obj1) const;
+  virtual void writeToObject(XRef *xref, Object &obj1) const;
 
   const char *getStyleName() const;
 
@@ -632,12 +632,12 @@ protected:
   void drawCircle(double cx, double cy, double r, GBool fill);
   void drawCircleTopLeft(double cx, double cy, double r);
   void drawCircleBottomRight(double cx, double cy, double r);
-  void layoutText(GooString *text, GooString *outBuf, int *i, GfxFont *font,
+  void layoutText(const std::string &text, std::string &outBuf, int *i, GfxFont *font,
 		  double *width, double widthLimit, int *charCount,
 		  GBool noReencode);
-  void writeString(GooString *str, GooString *appearBuf);
+  void writeString(const std::string &str, std::string &appearBuf);
   void createForm(double *bbox, GBool transparencyGroup, Object *resDict, Object *aStream);
-  void createResourcesDict(const std::string &formName, const Object &formStream, const std::string &stateName,
+  void createResourcesDict(const std::string &formName, Object *formStream, const std::string &stateName,
 			   double opacity, const char *blendMode, Object *resDict);
   GBool isVisible(GBool printing);
   int getRotation() const;
@@ -674,7 +674,7 @@ protected:
   PDFDoc *doc;
   XRef *xref;			// the xref table for this PDF file
   Ref ref;                      // object ref identifying this annotation
-  GooString *appearBuf;
+  std::string appearBuf;
   AnnotBorder *border;          // Border, BS
   AnnotColor *color;            // C
   double fontSize; 
@@ -782,25 +782,25 @@ public:
   };
 
   AnnotText(PDFDoc *docA, PDFRectangle *rect);
-  AnnotText(PDFDoc *docA, Dict *dict, Object *obj);
+  AnnotText(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   ~AnnotText();
 
   virtual void draw(Gfx *gfx, GBool printing);
 
   // getters
   GBool getOpen() const { return open; }
-  GooString *getIcon() const { return icon; }
+	const std::string &getIcon() const { return icon; }
   AnnotTextState getState() const { return state; }
 
   void setOpen(GBool openA);
-  void setIcon(GooString *new_icon);
+  void setIcon(const std::string &new_icon);
 
 private:
 
-  void initialize(PDFDoc *docA, Dict *dict);
+  void initialize(PDFDoc *docA, const std::shared_ptr<Dict> &dict);
 
   GBool open;                       // Open       (Default false)
-  GooString *icon;                  // Name       (Default Note)
+	std::string icon;                  // Name       (Default Note)
   AnnotTextState state;             // State      (Default Umarked if
                                     //             StateModel Marked
                                     //             None if StareModel Review)
@@ -875,7 +875,7 @@ public:
   };
 
   AnnotLink(PDFDoc *docA, PDFRectangle *rect);
-  AnnotLink(PDFDoc *docA, Dict *dict, Object *obj);
+  AnnotLink(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   virtual ~AnnotLink();
 
   virtual void draw(Gfx *gfx, GBool printing);
@@ -883,16 +883,16 @@ public:
   // getters
   LinkAction *getAction() const { return action; }
   AnnotLinkEffect getLinkEffect() const { return linkEffect; }
-  Dict *getUriAction() const { return uriAction; }
+  std::shared_ptr<Dict> getUriAction() const { return uriAction; }
   AnnotQuadrilaterals *getQuadrilaterals() const { return quadrilaterals; }
 
 protected:
 
-  void initialize(PDFDoc *docA, Dict *dict);
+  void initialize(PDFDoc *docA, const std::shared_ptr<Dict> &dict);
 
   LinkAction *action;                  // A, Dest
   AnnotLinkEffect linkEffect;          // H          (Default I)
-  Dict *uriAction;                     // PA
+  std::shared_ptr<Dict> uriAction;                     // PA
 
   AnnotQuadrilaterals *quadrilaterals; // QuadPoints
 };
@@ -916,25 +916,25 @@ public:
     intentFreeTextTypeWriter  // FreeTextTypeWriter
   };
 
-  AnnotFreeText(PDFDoc *docA, PDFRectangle *rect, GooString *da);
-  AnnotFreeText(PDFDoc *docA, Dict *dict, Object *obj);
+  AnnotFreeText(PDFDoc *docA, PDFRectangle *rect, const std::string &da);
+  AnnotFreeText(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   ~AnnotFreeText();
 
   virtual void draw(Gfx *gfx, GBool printing);
   virtual const Object getAppearanceResDict();
   virtual void setContents(const goostring &new_content);
 
-  void setAppearanceString(GooString *new_string);
+  void setAppearanceString(const std::string &new_string);
   void setQuadding(AnnotFreeTextQuadding new_quadding);
-  void setStyleString(GooString *new_string);
+  void setStyleString(const goostring &new_string);
   void setCalloutLine(AnnotCalloutLine *line);
   void setIntent(AnnotFreeTextIntent new_intent);
 
   // getters
-  GooString *getAppearanceString() const { return appearanceString; }
+  const std::string &getAppearanceString() const { return appearanceString; }
   AnnotFreeTextQuadding getQuadding() const { return quadding; }
   // return rc
-  GooString *getStyleString() const { return styleString; }
+  const goostring &getStyleString() const { return styleString; }
   AnnotCalloutLine *getCalloutLine() const {  return calloutLine; }
   AnnotFreeTextIntent getIntent() const { return intent; }
   AnnotBorderEffect *getBorderEffect() const { return borderEffect; }
@@ -943,17 +943,17 @@ public:
 
 protected:
 
-  void initialize(PDFDoc *docA, Dict *dict);
-  static void parseAppearanceString(GooString *da, double &fontsize, AnnotColor* &fontcolor);
+  void initialize(PDFDoc *docA, const std::shared_ptr<Dict> &dict);
+  static void parseAppearanceString(const goostring &da, double &fontsize, AnnotColor* &fontcolor);
   void generateFreeTextAppearance();
 
   // required
-  GooString *appearanceString;      // DA
+  std::string appearanceString;      // DA
 
   // optional
   AnnotFreeTextQuadding quadding;   // Q  (Default 0)
   // RC
-  GooString *styleString;           // DS
+  goostring styleString;           // DS
   AnnotCalloutLine *calloutLine;    // CL
   AnnotFreeTextIntent intent;       // IT
   AnnotBorderEffect *borderEffect;  // BE
@@ -981,7 +981,7 @@ public:
   };
 
   AnnotLine(PDFDoc *docA, PDFRectangle *rect);
-  AnnotLine(PDFDoc *docA, Dict *dict, Object *obj);
+  AnnotLine(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   ~AnnotLine();
 
   virtual void draw(Gfx *gfx, GBool printing);
@@ -1006,7 +1006,7 @@ public:
   AnnotLineIntent getIntent() const { return intent; }
   double  getLeaderLineOffset() const { return leaderLineOffset; }
   AnnotLineCaptionPos getCaptionPos() const { return captionPos; }
-  Dict *getMeasure() const { return measure; }
+  std::shared_ptr<Dict> getMeasure() const { return measure; }
   double getCaptionTextHorizontal() const { return captionTextHorizontal; }
   double getCaptionTextVertical() const { return captionTextVertical; }
   double getX1() const { return coord1->getX(); }
@@ -1016,7 +1016,7 @@ public:
 
 protected:
 
-  void initialize(PDFDoc *docA, Dict *dict);
+  void initialize(PDFDoc *docA, const std::shared_ptr<Dict> &dict);
   void generateLineAppearance();
 
   // required
@@ -1034,7 +1034,7 @@ protected:
   AnnotLineIntent intent;           // IT
   double leaderLineOffset;          // LLO
   AnnotLineCaptionPos captionPos;   // CP       (Default Inline)
-  Dict *measure;                    // Measure
+  std::shared_ptr<Dict> measure;                    // Measure
   double captionTextHorizontal;     // CO       (Default [0, 0])
   double captionTextVertical;       //
 };
@@ -1047,7 +1047,7 @@ class AnnotTextMarkup: public AnnotMarkup {
 public:
 
   AnnotTextMarkup(PDFDoc *docA, PDFRectangle *rect, AnnotSubtype subType);
-  AnnotTextMarkup(PDFDoc *docA, Dict *dict, Object *obj);
+  AnnotTextMarkup(PDFDoc *docA, const std::shared_ptr<Dict> &dict, const Object &obj);
   virtual ~AnnotTextMarkup();
 
   virtual void draw(Gfx *gfx, GBool printing);
@@ -1061,7 +1061,7 @@ public:
 
 protected:
 
-  void initialize(PDFDoc *docA, Dict *dict);
+  void initialize(PDFDoc *docA, const std::shared_ptr<Dict> &dict);
   
   AnnotQuadrilaterals *quadrilaterals; // QuadPoints
 };
