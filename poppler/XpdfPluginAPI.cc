@@ -35,7 +35,9 @@
 
 //~ This should use a pool of Objects; change xpdfFreeObj to match.
 static Object *allocObj() {
-  return (Object *)gmalloc(sizeof(Object));
+	Object *obj = (Object *)gmalloc(sizeof(Object));
+	new (obj) Object();
+	return obj;
 }
 
 //------------------------------------------------------------------------

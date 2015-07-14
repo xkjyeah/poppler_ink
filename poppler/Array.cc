@@ -97,6 +97,7 @@ void Array::add(Object *elem) {
     }
     elems = (Object *)greallocn(elems, size, sizeof(Object));
   }
+	new (&elems[length]) Object();
   elems[length] = *elem;
   ++length;
 }

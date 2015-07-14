@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 2.6.0 FATAL_ERROR)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
+find_package(Boost)
 include(PopplerDefaults)
 include(PopplerMacros)
 include(MacroOptionalFindPackage)
@@ -273,6 +274,8 @@ if(NOT DEFINED POPPLER_DATADIR)
   set(POPPLER_DATADIR "${CMAKE_INSTALL_PREFIX}/share/poppler")
 endif(NOT DEFINED POPPLER_DATADIR)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=deprecated")
+
 if(DEFINED COMPILE_WARNINGS)
 else(DEFINED COMPILE_WARNINGS)
   set(COMPILE_WARNINGS "yes")
@@ -340,6 +343,7 @@ set(poppler_SRCS
   poppler/GfxState.cc
   poppler/GlobalParams.cc
   poppler/Hints.cc
+  poppler/Intrusives.cc
   poppler/JArithmeticDecoder.cc
   poppler/JBIG2Stream.cc
   poppler/Lexer.cc

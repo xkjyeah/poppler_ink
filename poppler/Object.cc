@@ -77,7 +77,6 @@ Object *Object::initDict(XRef *xref) {
 Object *Object::initDict(Dict *dictA) {
   initObj(objDict);
   dict = dictA;
-  dict->incRef();
   return this;
 }
 
@@ -87,33 +86,98 @@ Object *Object::initStream(Stream *streamA) {
   return this;
 }
 
-Object *Object::copy(Object *obj) {
-  *obj = *this;
+/** equivalent to "shallow copy" **/
+Object::Object(const Object &other)
+: type(objNone) {
+	*this = other;
+}
+Object::Object(Object &&other)
+: type(objNone) {
+	*this = other;
+}
+Object &Object::operator=(Object &&other) {
+	if (this == &other)
+		return *this;
+
+	free();
+
+	this->type = other.type;
+	other.type = objNone;
+
   switch (type) {
   case objString:
-    obj->string = string->copy();
+		new (&string) StringPtr(std::move(other.string));
     break;
   case objName:
-    obj->name = copyString(name);
+		new (&name) CharPtr(std::move(other.name));
     break;
   case objArray:
-    array->incRef();
+		new (&array) ArrayPtr(std::move(other.array));
     break;
   case objDict:
-    dict->incRef();
+		new (&dict) DictPtr(std::move(other.dict));
     break;
   case objStream:
-    stream->incRef();
+		new (&stream) StreamPtr(std::move(other.stream));
     break;
   case objCmd:
-    obj->cmd = copyString(cmd);
+		new (&cmd) CharPtr(std::move(other.cmd));
     break;
   default:
+		if (sizeof(int64g) >= sizeof(ref)) {
+			int64g = other.int64g;
+		}
+		else {
+			ref = other.ref;
+		}
     break;
   }
-#ifdef DEBUG_MEM
-  ++numAlloc[type];
-#endif
+  return *this;
+}
+
+/** deep copy **/
+Object &Object::operator=(const Object &other) {
+	free();
+
+	this->type = other.type;
+
+  switch (type) {
+  case objString:
+		new (&string) StringPtr(other.string->copy());
+    break;
+  case objName:
+		new (&name) CharPtr(copyString(other.name.get()));
+    break;
+  case objArray:
+		new (&array) ArrayPtr(other.array);
+    break;
+  case objDict:
+		new (&dict) DictPtr(other.dict);
+    break;
+  case objStream:
+		new (&stream) StreamPtr(other.stream);
+    break;
+  case objCmd:
+		new (&cmd) CharPtr(copyString(other.cmd.get()));
+    break;
+  default:
+		if (sizeof(int64g) >= sizeof(ref)) {
+			int64g = other.int64g;
+		}
+		else {
+			ref = other.ref;
+		}
+    break;
+  }
+  return *this;
+}
+
+Object::~Object() {
+	free();
+}
+
+Object *Object::copy(Object *obj) {
+  *obj = *this;
   return obj;
 }
 
@@ -125,28 +189,22 @@ Object *Object::fetch(XRef *xref, Object *obj, int recursion) {
 void Object::free() {
   switch (type) {
   case objString:
-    delete string;
+    string.~unique_ptr();
     break;
   case objName:
-    gfree(name);
+    name.~unique_ptr();
     break;
   case objArray:
-    if (!array->decRef()) {
-      delete array;
-    }
+    array.~intrusive_ptr();
     break;
   case objDict:
-    if (!dict->decRef()) {
-      delete dict;
-    }
+    dict.~intrusive_ptr();
     break;
   case objStream:
-    if (!stream->decRef()) {
-      delete stream;
-    }
+    stream.~intrusive_ptr();
     break;
   case objCmd:
-    gfree(cmd);
+		cmd.~unique_ptr();
     break;
   default:
     break;
@@ -181,7 +239,7 @@ void Object::print(FILE *f) {
     fprintf(f, ")");
     break;
   case objName:
-    fprintf(f, "/%s", name);
+    fprintf(f, "/%s", name.get());
     break;
   case objNull:
     fprintf(f, "null");
@@ -214,7 +272,7 @@ void Object::print(FILE *f) {
     fprintf(f, "%d %d R", ref.num, ref.gen);
     break;
   case objCmd:
-    fprintf(f, "%s", cmd);
+    fprintf(f, "%s", cmd.get());
     break;
   case objError:
     fprintf(f, "<error>");

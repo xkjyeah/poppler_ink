@@ -97,6 +97,7 @@ Dict::Dict(Dict* dictA) {
   sorted = dictA->sorted;
   entries = (DictEntry *)gmallocn(size, sizeof(DictEntry));
   for (int i=0; i<length; i++) {
+		new (&entries[i]) DictEntry();
     entries[i].key = copyString(dictA->entries[i].key);
     dictA->entries[i].val.copy(&entries[i].val);
   }
@@ -121,7 +122,8 @@ Dict *Dict::copy(XRef *xrefA) {
 
 Dict::~Dict() {
   int i;
-
+	
+	// FIXME: you should call the destructor?
   for (i = 0; i < length; ++i) {
     gfree(entries[i].key);
     entries[i].val.free();
@@ -160,6 +162,7 @@ void Dict::add(char *key, Object *val) {
     }
     entries = (DictEntry *)greallocn(entries, size, sizeof(DictEntry));
   }
+	new (&entries[length]) DictEntry();
   entries[length].key = key;
   entries[length].val = *val;
   ++length;

@@ -174,8 +174,7 @@ Object *Parser::getObj(Object *obj, GBool simpleOnly,
     // avoid re-allocating memory for complex objects like strings by
     // shallow copy of <buf1> to <obj> and nulling <buf1> so that
     // subsequent buf1.free() won't free this memory
-    buf1.shallowCopy(obj);
-    buf1.initNull();
+		*obj = std::move(buf1);
     shift();
   }
 
@@ -293,7 +292,7 @@ void Parser::shift(int objNum) {
     inlineImg = 1;
   }
   buf1.free();
-  buf2.shallowCopy(&buf1);
+	buf1 = std::move(buf2);
   if (inlineImg > 0)		// don't buffer inline image data
     buf2.initNull();
   else
@@ -314,7 +313,7 @@ void Parser::shift(const char *cmdA, int objNum) {
     inlineImg = 1;
   }
   buf1.free();
-  buf2.shallowCopy(&buf1);
+	buf1 = std::move(buf2);
   if (inlineImg > 0) {
     buf2.initNull();
   } else if (buf1.isCmd(cmdA)) {

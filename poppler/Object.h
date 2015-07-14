@@ -57,6 +57,8 @@
         abort(); \
     }
 
+#include "Intrusives.h"
+
 class XRef;
 class Array;
 class Dict;
@@ -115,7 +117,7 @@ enum ObjType {
 class Object {
 public:
   // clear the anonymous union as best we can -- clear at least a pointer
-  void zeroUnion() { this->name = NULL; }
+  void zeroUnion() { this->int64g = 0; }
 
   // Default constructor.
   Object():
@@ -129,9 +131,9 @@ public:
   Object *initReal(double realA)
     { initObj(objReal); real = realA; return this; }
   Object *initString(GooString *stringA)
-    { initObj(objString); string = stringA; return this; }
+    { initObj(objString); string.reset(stringA); return this; }
   Object *initName(const char *nameA)
-    { initObj(objName); name = copyString(nameA); return this; }
+    { initObj(objName); name.reset(copyString(nameA)); return this; }
   Object *initNull()
     { initObj(objNull); return this; }
   Object *initArray(XRef *xref);
@@ -141,7 +143,7 @@ public:
   Object *initRef(int numA, int genA)
     { initObj(objRef); ref.num = numA; ref.gen = genA; return this; }
   Object *initCmd(char *cmdA)
-    { initObj(objCmd); cmd = copyString(cmdA); return this; }
+    { initObj(objCmd); cmd.reset(copyString(cmdA)); return this; }
   Object *initError()
     { initObj(objError); return this; }
   Object *initEOF()
@@ -151,10 +153,13 @@ public:
 
   // Copy an object.
   Object *copy(Object *obj);
-  Object *shallowCopy(Object *obj) {
-    *obj = *this;
-    return obj;
-  }
+
+	//
+	Object(const Object &other);
+	Object(Object &&other);
+	Object &operator=(const Object &obj);
+	Object &operator=(Object &&obj);
+	~Object();
 
   // If object is a Ref, fetch and return the referenced object.
   // Otherwise, return a copy of the object.
@@ -184,11 +189,11 @@ public:
 
   // Special type checking.
   GBool isName(const char *nameA)
-    { return type == objName && !strcmp(name, nameA); }
+    { return type == objName && !strcmp(name.get(), nameA); }
   GBool isDict(const char *dictType);
   GBool isStream(char *dictType);
   GBool isCmd(const char *cmdA)
-    { return type == objCmd && !strcmp(cmd, cmdA); }
+    { return type == objCmd && !strcmp(cmd.get(), cmdA); }
 
   // Accessors.
   GBool getBool() { OBJECT_TYPE_CHECK(objBool); return booln; }
@@ -199,20 +204,35 @@ public:
   // Where the exact value of integers up to 2^63 is required, use isInt64()/getInt64().
   double getNum() { OBJECT_3TYPES_CHECK(objInt, objInt64, objReal);
     return type == objInt ? (double)intg : type == objInt64 ? (double)int64g : real; }
-  GooString *getString() { OBJECT_TYPE_CHECK(objString); return string; }
+  GooString *getString() { OBJECT_TYPE_CHECK(objString); return string.get(); }
   // After takeString() the only method that should be called for the object is free()
   // because the object it's not expected to have a NULL string.
   GooString *takeString() {
-    OBJECT_TYPE_CHECK(objString); GooString *s = string; string = NULL; return s; }
-  char *getName() { OBJECT_TYPE_CHECK(objName); return name; }
-  Array *getArray() { OBJECT_TYPE_CHECK(objArray); return array; }
-  Dict *getDict() { OBJECT_TYPE_CHECK(objDict); return dict; }
-  Stream *getStream() { OBJECT_TYPE_CHECK(objStream); return stream; }
+		// string is technically a unique_ptr, but because
+		// we are using unions here, we can use the hackish way
+		// of emptying the type so that nothing happens
+    OBJECT_TYPE_CHECK(objString);
+		GooString *s = string.get();
+		type = objNull; // now ~unique_ptr won't be called
+		return s;
+	}
+  char *getName() { OBJECT_TYPE_CHECK(objName); return name.get(); }
+  Array *getArray() { OBJECT_TYPE_CHECK(objArray); return array.get(); }
+  Dict *getDict() { OBJECT_TYPE_CHECK(objDict); return dict.get(); }
+  Stream *getStream() { OBJECT_TYPE_CHECK(objStream); return stream.get(); }
   Ref getRef() { OBJECT_TYPE_CHECK(objRef); return ref; }
   int getRefNum() { OBJECT_TYPE_CHECK(objRef); return ref.num; }
   int getRefGen() { OBJECT_TYPE_CHECK(objRef); return ref.gen; }
-  char *getCmd() { OBJECT_TYPE_CHECK(objCmd); return cmd; }
+  char *getCmd() { OBJECT_TYPE_CHECK(objCmd); return cmd.get(); }
   long long getInt64() { OBJECT_TYPE_CHECK(objInt64); return int64g; }
+
+	// intrusive ptr version
+	const DictPtr &getDictPtr() const { OBJECT_TYPE_CHECK(objDict); return dict; }
+	const ArrayPtr &getArrayPtr() const { OBJECT_TYPE_CHECK(objArray); return array; }
+	const StreamPtr &getStreamPtr() const { OBJECT_TYPE_CHECK(objStream); return stream; }
+	DictPtr &getDictPtr() { OBJECT_TYPE_CHECK(objDict); return dict; }
+	ArrayPtr &getArrayPtr() { OBJECT_TYPE_CHECK(objArray); return array; }
+	StreamPtr &getStreamPtr() { OBJECT_TYPE_CHECK(objStream); return stream; }
 
   // Array accessors.
   int arrayGetLength();
@@ -259,13 +279,13 @@ private:
     int intg;			//   integer
     long long int64g;           //   64-bit integer
     double real;		//   real
-    GooString *string;		//   string
-    char *name;			//   name
-    Array *array;		//   array
-    Dict *dict;			//   dictionary
-    Stream *stream;		//   stream
+    StringPtr string;		//   string
+    CharPtr name;			//   name
+    ArrayPtr array;		//   array
+    DictPtr dict;			//   dictionary
+    StreamPtr stream;		//   stream
     Ref ref;			//   indirect reference
-    char *cmd;			//   command
+    CharPtr cmd;			//   command
   };
 
 #ifdef DEBUG_MEM
